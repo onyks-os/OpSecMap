@@ -1,0 +1,104 @@
+name: Release
+
+# One tag, one release: pushing v<version> builds, tests, signs and publishes.
+# Everything published is what `make release-artifacts` leaves in dist/, so a
+# module that adds an artifact (make/features/*.mk) needs no edit here. Modules
+# that build in their own environment — a distribution container, a Flatpak
+# runtime — run as their own workflows and attach to the release this one creates.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Build, sign, and publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # create the GitHub Release and upload assets
+      id-token: write   # Sigstore keyless signing via OIDC
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # Full history: the previous tag is needed for the compare link, and
+          # the commit time for SOURCE_DATE_EPOCH.
+          fetch-depth: 0
+
+      - name: Set up the Rust toolchain
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+
+      # The tag is the only thing a human types during a release, so it is the
+      # only thing that can silently disagree with the tree it points at.
+      - name: Verify the tag matches the version in the manifest
+        run: |
+          version="$(make --no-print-directory version)"
+          if [ "${GITHUB_REF_NAME#v}" != "$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match the manifest version $version"
+            exit 1
+          fi
+          echo "Releasing $version"
+
+      # CI ran on the branch; this is the tagged tree, which is what ships.
+      - name: Lint and test the tagged tree
+        run: make lint test
+
+      - name: Build every release artifact
+        run: make release-artifacts
+
+      # Keyless signing: the certificate binds each artifact to this workflow and
+      # tag, so there is no long-lived private key to compromise.
+      # Verification instructions live in docs/verification.md.
+      - name: Sign artifacts with Sigstore
+        uses: sigstore/gh-action-sigstore-python@790bc6befb9d733738f18d8f895854b453640ec9 # v3.5.0
+        with:
+          # Every line is expanded as a glob and must match at least one file:
+          # a "!pattern" is not an exclusion but a literal path, and fails the
+          # step. No .sigstore bundle exists yet at this point anyway.
+          inputs: dist/*
+
+      # The body is the curated CHANGELOG section. GitHub's generated notes list
+      # merged pull requests, which says little on a project where work lands as
+      # direct commits.
+      - name: Assemble release notes from the CHANGELOG
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          make --no-print-directory release-notes VERSION="$version" > RELEASE_NOTES.md
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "::error::CHANGELOG.md has no section for $version"
+            exit 1
+          fi
+          # Previous tag by version order, not reachability: a tag left outside
+          # main by a history rewrite would otherwise be skipped silently.
+          prev_tag="$(git tag --list 'v*' --sort=-version:refname \
+                       | grep -vFx "$GITHUB_REF_NAME" | head -n1 || true)"
+          {
+            echo
+            echo "---"
+            echo
+            if [ -n "$prev_tag" ]; then
+              echo "**Full Changelog**: https://github.com/${GITHUB_REPOSITORY}/compare/${prev_tag}...${GITHUB_REF_NAME}"
+            fi
+            echo "**Verifying these artifacts**: see [docs/verification.md](https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_REF_NAME}/docs/verification.md)"
+          } >> RELEASE_NOTES.md
+          cat RELEASE_NOTES.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          files: |
+            dist/*
+          body_path: RELEASE_NOTES.md
+          generate_release_notes: false
+          fail_on_unmatched_files: true
+          # v1.2.0-rc.1 is published as a pre-release, never as the latest.
+          prerelease: ${{ contains(github.ref_name, '-') }}

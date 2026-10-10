@@ -1,0 +1,92 @@
+site_name: OpSecMap - OpSecMap
+site_url: https://onyks-it.github.io/opsecmap/
+# Quoted: the default description is "TODO: describe <project>", and an unquoted
+# YAML value containing ": " is a syntax error, not a string.
+site_description: "Local-first, zero-trust OpSec dependency mapper. Visualize accounts, devices, backups and recovery paths to find single points of failure before an incident."
+site_author: onyks-it
+site_dir: ../onyks-it.github.io/opsecmap
+docs_dir: docs/web
+repo_url: https://github.com/onyks-it/OpSecMap
+repo_name: onyks-it/OpSecMap
+copyright: Copyright &copy; 2026 onyks-it — AGPL-3.0-or-later
+
+theme:
+  name: material
+  language: en
+  font:
+    text: Inter
+    code: JetBrains Mono
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - toc.follow
+
+  palette:
+    # Dark mode (default)
+    - scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+      primary: custom
+      accent: custom
+      media: "(prefers-color-scheme: dark)"
+
+    # Light mode
+    - scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+      primary: custom
+      accent: custom
+      media: "(prefers-color-scheme: light)"
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - https://unpkg.com/mermaid@10/dist/mermaid.min.js
+  - javascripts/mermaid_init.js
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - attr_list
+  - md_in_html
+
+nav:
+  - Home: index.md
+  - Tutorials:
+      - Quickstart: tutorials/quickstart.md
+  - How-To Guides:
+      - Overview: how-to/index.md
+  - Explanation:
+      - Architecture: explanation/architecture.md
+  - Reference:
+      - CLI: reference/cli.md
+      - Dependencies: reference/dependencies.md
+  - Release Notes:
+      - Changelog: release-notes/changelog.md

@@ -1,0 +1,109 @@
+name: Package (rpm)
+
+# Builds the .rpm, installs it in a clean Fedora container, and publishes it signed.
+#
+# - pull requests that touch the packaging, and on demand: build, install in
+#   clean containers, describe — nothing is published;
+# - a v* tag: the same, then sign the package and its SBOM with Sigstore and
+#   attach them to the GitHub Release that release.yml creates.
+#
+# docs/packaging.md explains the whole packaging set-up.
+
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+    branches: ["main"]
+    paths:
+      - 'packaging/rpm/**'
+      - '.github/workflows/package-rpm.yml'
+      - 'make/features/pkg-rpm.mk'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build, install, describe
+    # The binary links the runner's glibc: every distribution in the install
+    # test below must be at least as new. Pinned so that the floor moves only
+    # when this line does.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0   # SOURCE_DATE_EPOCH is the tagged commit's time
+
+      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
+        with:
+          toolchain: stable
+
+      - name: Install cargo-generate-rpm
+        run: cargo install cargo-generate-rpm@0.21.0 --locked
+
+      - name: Install the packaging tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq rpm
+
+      - name: Build the .rpm
+        run: make package-rpm
+
+      - name: Install and run it in clean containers
+        run: |
+          pkg="$(ls dist/*.rpm)"
+          make smoke-test-package PACKAGE="$pkg" IMAGE=registry.fedoraproject.org/fedora:44
+
+      - name: Write and validate its SBOM
+        run: make sbom-files FILES="$(ls dist/*.rpm)"
+
+      - name: Keep only the package and its SBOM
+        run: find dist -maxdepth 1 -type f ! -name '*.rpm' ! -name '*.rpm.cdx.json' -delete
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: rpm
+          path: |
+            dist/
+          if-no-files-found: error
+          retention-days: 3
+
+  # Only for a tag, and only after the package was built, installed and
+  # described. Signed here, by this workflow: its identity is
+  # .github/workflows/package-rpm.yml@refs/tags/<tag>, which scripts/verify-release.sh and
+  # docs/packaging.md accept for this package.
+  publish:
+    name: Sign and attach to the release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # attach the package to the release
+      id-token: write   # Sigstore keyless signing
+      actions: read     # scripts/release-wait.sh stops early if the Release run failed
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: rpm
+          path: dist/
+
+      - name: Sign with Sigstore
+        uses: sigstore/gh-action-sigstore-python@790bc6befb9d733738f18d8f895854b453640ec9 # v3.5.0
+        with:
+          inputs: dist/*
+
+      # release.yml creates the release; this workflow started on the same tag
+      # push, so it waits for it rather than racing it.
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          scripts/release-wait.sh "$GITHUB_REF_NAME"
+          gh release upload "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" --clobber dist/*

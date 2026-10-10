@@ -1,0 +1,142 @@
+name: Package (Arch)
+
+# Builds the Arch package with makepkg in an Arch container, installs it in a clean one, and
+# publishes it signed.
+#
+# - pull requests that touch the packaging, and on demand: build, install in
+#   clean containers, describe — nothing is published;
+# - a v* tag: the same, then sign the package and its SBOM with Sigstore and
+#   attach them to the GitHub Release that release.yml creates.
+#
+# docs/packaging.md explains the whole packaging set-up.
+
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+    branches: ["main"]
+    paths:
+      - 'packaging/arch/**'
+      - '.github/workflows/package-arch.yml'
+      - 'make/features/pkg-arch.mk'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build with makepkg
+    runs-on: ubuntu-latest
+    container: docker.io/library/archlinux@sha256:b21322c663be387c0ed9cbc7bbbfe18e41633ad4e7b7c77cfad45f128be20040 # archlinux:latest
+    steps:
+      # Retried: an Arch mirror that stalls fails the whole transaction.
+      - name: Install makepkg
+        run: |
+          for attempt in 1 2 3; do
+            pacman -Syu --noconfirm --needed base-devel git && exit 0
+            echo "pacman failed (attempt $attempt), retrying"; sleep 20
+          done
+          exit 1
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0   # SOURCE_DATE_EPOCH is the tagged commit's time
+
+      # The PKGBUILD's own arrays, so this list never drifts from it.
+      - name: Install what the PKGBUILD depends on
+        run: |
+          # shellcheck disable=SC1091 # the PKGBUILD is sourced for its arrays only
+          ( . packaging/arch/PKGBUILD
+            deps=("${depends[@]}" "${makedepends[@]}" "${checkdepends[@]}")
+            if [ "${#deps[@]}" -gt 0 ]; then pacman -S --noconfirm --needed "${deps[@]}"; fi )
+
+      # makepkg refuses to run as root.
+      - name: Build
+        run: |
+          git config --system --add safe.directory "$PWD"
+          useradd --create-home builder
+          chown -R builder .
+          su builder -c "make package-arch"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: arch-build
+          path: |
+            dist/*.pkg.tar.zst
+          if-no-files-found: error
+          retention-days: 3
+
+  check:
+    name: Install, describe
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0   # SOURCE_DATE_EPOCH is the tagged commit's time
+
+      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
+        with:
+          toolchain: stable
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: arch-build
+          path: dist/
+
+      - name: Install and run it in a clean Arch container
+        run: make smoke-test-package PACKAGE="$(ls dist/*.pkg.tar.zst)" IMAGE=docker.io/library/archlinux:latest
+
+      - name: Write and validate its SBOM
+        run: make sbom-files FILES="$(ls dist/*.pkg.tar.zst)"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: arch
+          path: |
+            dist/
+          if-no-files-found: error
+          retention-days: 3
+
+  # Only for a tag, and only after the package was built, installed and
+  # described. Signed here, by this workflow: its identity is
+  # .github/workflows/package-arch.yml@refs/tags/<tag>, which scripts/verify-release.sh and
+  # docs/packaging.md accept for this package.
+  publish:
+    name: Sign and attach to the release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # attach the package to the release
+      id-token: write   # Sigstore keyless signing
+      actions: read     # scripts/release-wait.sh stops early if the Release run failed
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: arch
+          path: dist/
+
+      - name: Sign with Sigstore
+        uses: sigstore/gh-action-sigstore-python@790bc6befb9d733738f18d8f895854b453640ec9 # v3.5.0
+        with:
+          inputs: dist/*
+
+      # release.yml creates the release; this workflow started on the same tag
+      # push, so it waits for it rather than racing it.
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          scripts/release-wait.sh "$GITHUB_REF_NAME"
+          gh release upload "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" --clobber dist/*

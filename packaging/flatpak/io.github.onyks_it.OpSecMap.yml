@@ -1,0 +1,47 @@
+# Flatpak manifest for OpSecMap.
+#
+#   make package-flatpak   # builds dist/opsecmap-<version>.flatpak
+#
+# cargo-sources.json, next to this file, is generated from Cargo.lock by
+# `make flatpak-sources`: the sandbox has no network, so every crate is a source.
+app-id: io.github.onyks_it.OpSecMap
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: opsecmap
+
+# Nothing outside the sandbox, until the program needs it: each permission is a
+# decision to record here, with its reason.
+# TODO(template): add the finish-args the program needs, e.g. --filesystem=home:ro.
+finish-args: []
+
+build-options:
+  append-path: /usr/lib/sdk/rust-stable/bin
+  env:
+    CARGO_HOME: /run/build/opsecmap/cargo
+
+modules:
+  - name: opsecmap
+    buildsystem: simple
+    build-options:
+      env:
+        CARGO_NET_OFFLINE: 'true'
+    build-commands:
+      - cargo --offline fetch --manifest-path Cargo.toml
+      - cargo --offline build --release --locked
+      - install -Dm755 target/release/opsecmap /app/bin/opsecmap
+      - install -Dm644 LICENSE /app/share/licenses/io.github.onyks_it.OpSecMap/LICENSE
+    sources:
+      - type: dir
+        path: ../..
+        # Build output and local state, which can be gigabytes.
+        skip:
+          - target
+          - dist
+          - build-flatpak
+          - .flatpak-builder
+          - .flatpak-repo
+          - .cache
+      - cargo-sources.json

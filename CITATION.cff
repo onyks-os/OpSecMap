@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+title: "OpSecMap"
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - alias: "onyks"
+    name: "onyks"
+repository-code: "https://github.com/onyks-it/OpSecMap"
+url: "https://onyks-it.github.io/opsecmap/"
+abstract: "Local-first, zero-trust OpSec dependency mapper. Visualize accounts, devices, backups and recovery paths to find single points of failure before an incident."
+keywords:
+  - "OpSecMap"
+license: AGPL-3.0-or-later
+version: "0.1.0"
+date-released: "2026-10-10"

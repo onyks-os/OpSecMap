@@ -1,0 +1,85 @@
+name: Publish (crates.io)
+
+# cargo cannot upload a prebuilt .crate: `cargo publish` packages the tree
+# again. So this packages the tag first and requires the result to be byte for
+# byte the .crate that release.yml signed — then publishes. A crate on
+# crates.io that differs from the signed one is refused before it exists.
+# Never for a pre-release.
+#
+# Authentication, in order of preference:
+#   1. Trusted Publishing: set the repository variable
+#      CRATES_IO_TRUSTED_PUBLISHING=true once crates.io trusts this repository
+#      and the workflow `publish-crates.yml`. A 30-minute token is minted per run.
+#   2. The CARGO_REGISTRY_TOKEN secret of the `crates-io` environment —
+#      required for the very first publish, which crates.io does not allow
+#      through Trusted Publishing.
+# docs/publishing.md walks through both.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish to crates.io
+    if: ${{ !contains(github.ref_name, '-') }}
+    runs-on: ubuntu-latest
+    environment: crates-io
+    permissions:
+      contents: read
+      actions: read     # scripts/release-wait.sh stops early if the Release run failed
+      id-token: write   # Trusted Publishing via OIDC
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0   # SOURCE_DATE_EPOCH comes from the tagged commit
+
+      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
+        with:
+          toolchain: stable
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Install the Sigstore client
+        run: pip install "sigstore==4.5.0"
+
+      - name: Wait for the release, then download and verify the .crate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          scripts/release-wait.sh "$GITHUB_REF_NAME" '*.crate'
+          scripts/release-fetch.sh "$GITHUB_REF_NAME" signed '*.crate'
+
+      - name: Require cargo to package exactly the signed .crate
+        run: |
+          rm -rf target/package
+          cargo package --locked --target-dir target/package
+          signed="$(ls signed/*.crate)"
+          built="target/package/package/$(basename "$signed")"
+          if ! cmp -s "$signed" "$built"; then
+            echo "::error::cargo packages $(sha256sum < "$built" | cut -c1-16)…, the release signed $(sha256sum < "$signed" | cut -c1-16)…"
+            exit 1
+          fi
+          echo "identical: $(basename "$signed")"
+
+      - name: Authenticate with Trusted Publishing
+        id: auth
+        if: ${{ vars.CRATES_IO_TRUSTED_PUBLISHING == 'true' }}
+        uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
+
+      - name: cargo publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token || secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          if [ -z "$CARGO_REGISTRY_TOKEN" ]; then
+            echo "::error::no crates.io credentials: configure Trusted Publishing, or set the CARGO_REGISTRY_TOKEN secret of the crates-io environment"
+            exit 1
+          fi
+          cargo publish --locked

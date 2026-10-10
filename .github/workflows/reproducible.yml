@@ -1,0 +1,81 @@
+name: Reproducible build
+
+# Two checks that the release build is deterministic (docs/reproducible-builds.md):
+#
+# - on pull requests, pushes to main and weekly: build twice from two copies of
+#   the tree and require identical bytes;
+# - on every tag: build the tag again on this runner, independently of the
+#   Release workflow, and require the result to match the SHA256SUMS it
+#   published. Signed artifacts that the source does not build to fail here.
+
+on:
+  push:
+    branches: ["main"]
+    tags: ['v*']
+  pull_request:
+    branches: ["main"]
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  twice:
+    name: Build twice, compare
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
+        with:
+          toolchain: stable
+
+      - name: Build twice and compare
+        run: make check-reproducible OUT=repro
+
+      - name: Keep both builds for inspection
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: reproducibility
+          path: repro/
+          retention-days: 7
+
+  against-release:
+    name: Rebuild the tag, compare with the release
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read   # scripts/release-wait.sh stops early if the Release run failed
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
+        with:
+          toolchain: stable
+
+      - name: Build the tag
+        run: make release-artifacts
+
+      - name: Compare with the published SHA256SUMS
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          scripts/release-wait.sh "$GITHUB_REF_NAME" SHA256SUMS
+          gh release download "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" -p SHA256SUMS -D published
+          if cmp -s published/SHA256SUMS dist/SHA256SUMS; then
+            echo "The rebuild of $GITHUB_REF_NAME matches the published release:"
+            cat dist/SHA256SUMS
+          else
+            echo "::error::The rebuild of $GITHUB_REF_NAME differs from the published release"
+            diff published/SHA256SUMS dist/SHA256SUMS || true
+            exit 1
+          fi

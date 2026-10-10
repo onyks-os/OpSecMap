@@ -1,0 +1,10 @@
+# Every file requires review from the project lead by default.
+# See MAINTAINERS.md for the role definitions.
+*                       @onyks-it
+
+# Security-critical paths — always require an explicit lead sign-off.
+/.github/workflows/     @onyks-it
+/SECURITY.md            @onyks-it
+/docs/security-assessment.md @onyks-it
+
+# TODO(template): add the source paths that carry security-critical logic.

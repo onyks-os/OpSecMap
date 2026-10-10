@@ -1,0 +1,50 @@
+# Maintainer: onyks <onyks@protonmail.com>
+#
+# Arch Linux package for OpSecMap.
+#
+#   make package-arch      # on Arch: builds from the committed tree into dist/
+#
+# pkgver must equal the version in Cargo.toml; `make release-check` enforces it.
+
+pkgname=opsecmap
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Local-first, zero-trust OpSec dependency mapper. Visualize accounts, devices, backups and recovery paths to find single points of failure before an incident.'
+arch=('x86_64' 'aarch64')
+url='https://github.com/onyks-it/OpSecMap'
+license=('AGPL-3.0-or-later')
+depends=('gcc-libs' 'glibc')
+makedepends=('cargo')
+# makepkg's LTO flags are for C toolchains; Cargo.toml decides Rust's LTO.
+options=('!lto')
+# An archive of the committed tree, written by `make package-arch`. It is a
+# local file, so there is nothing to download and nothing to checksum here; the
+# package it produces is what the release signs.
+source=("$pkgname-$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+prepare() {
+    cd "$pkgname-$pkgver"
+    export RUSTUP_TOOLCHAIN=stable
+    cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+    cd "$pkgname-$pkgver"
+    export RUSTUP_TOOLCHAIN=stable
+    export CARGO_TARGET_DIR=target
+    cargo build --frozen --release
+}
+
+check() {
+    cd "$pkgname-$pkgver"
+    export RUSTUP_TOOLCHAIN=stable
+    cargo test --frozen
+}
+
+package() {
+    cd "$pkgname-$pkgver"
+    install -Dm755 "target/release/opsecmap" "$pkgdir/usr/bin/opsecmap"
+    install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
