@@ -37,5 +37,5 @@ jobs:
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
           fail-on-severity: high
-          # Licenses incompatible with AGPL-3.0-or-later. See SCA_POLICY.md.
+          # Licenses excluded by the dependency policy for this MIT project. See SCA_POLICY.md.
           deny-licenses: GPL-3.0, AGPL-3.0, SSPL-1.0

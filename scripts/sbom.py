@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 onyks
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Write a CycloneDX SBOM next to each release artifact, read from the artifact itself.
 
     scripts/sbom.py [--version V] [--cargo] dist/<artifact>...
@@ -46,7 +46,7 @@ from pathlib import Path
 from typing import Any
 
 NAME = "opsecmap"
-LICENSE = "AGPL-3.0-or-later"
+LICENSE = "MIT"
 SPEC_VERSION = "1.6"
 #: Namespace of this project's custom properties (CycloneDX reserves `cdx:`).
 PROP = f"{NAME}:"

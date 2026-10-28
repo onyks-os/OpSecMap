@@ -1,0 +1,13 @@
+{
+    "[rust]": {
+        "editor.defaultFormatter": "rust-lang.rust-analyzer"
+    },
+    "rust-analyzer.server.extraEnv": {
+        "PATH": "/home/onyks/.cargo/bin:/usr/local/bin:/usr/bin:/bin"
+    },
+    "rust-analyzer.rustfmt.overrideCommand": [
+        "/home/onyks/.cargo/bin/rustfmt",
+        "--edition",
+        "2021"
+    ]
+}

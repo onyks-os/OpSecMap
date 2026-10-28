@@ -1,6 +1,6 @@
 <!--
 Copyright (c) 2026 onyks-it
-SPDX-License-Identifier: AGPL-3.0-or-later
+SPDX-License-Identifier: MIT
 -->
 
 # Changelog

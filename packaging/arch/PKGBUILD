@@ -12,7 +12,7 @@ pkgrel=1
 pkgdesc='Local-first, zero-trust OpSec dependency mapper. Visualize accounts, devices, backups and recovery paths to find single points of failure before an incident.'
 arch=('x86_64' 'aarch64')
 url='https://github.com/onyks-it/OpSecMap'
-license=('AGPL-3.0-or-later')
+license=('MIT')
 depends=('gcc-libs' 'glibc')
 makedepends=('cargo')
 # makepkg's LTO flags are for C toolchains; Cargo.toml decides Rust's LTO.

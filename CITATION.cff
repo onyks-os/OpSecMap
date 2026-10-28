@@ -10,6 +10,6 @@ url: "https://onyks-it.github.io/opsecmap/"
 abstract: "Local-first, zero-trust OpSec dependency mapper. Visualize accounts, devices, backups and recovery paths to find single points of failure before an incident."
 keywords:
   - "OpSecMap"
-license: AGPL-3.0-or-later
+license: MIT
 version: "0.1.0"
 date-released: "2026-10-10"

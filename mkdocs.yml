@@ -8,7 +8,7 @@ site_dir: ../onyks-it.github.io/opsecmap
 docs_dir: docs/web
 repo_url: https://github.com/onyks-it/OpSecMap
 repo_name: onyks-it/OpSecMap
-copyright: Copyright &copy; 2026 onyks-it — AGPL-3.0-or-later
+copyright: Copyright &copy; 2026 onyks-it — MIT
 
 theme:
   name: material
