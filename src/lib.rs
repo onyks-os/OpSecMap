@@ -11,7 +11,10 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 mod model;
 
-pub use model::{create_resource, DependencyMap, MapError, Resource, ResourceError, ResourceId};
+pub use model::{
+    create_resource, DependencyMap, MapError, Resource, ResourceError, ResourceId, Route,
+    RouteError, RouteId,
+};
 
 #[cfg(test)]
 mod tests {

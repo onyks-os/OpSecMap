@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial project scaffold generated from
   [TemplateRepository](https://github.com/onyks-it/TemplateRepository).
+- Validated resource and route identifiers.
+- Resource storage, lookup, insertion and renaming through `DependencyMap`.
+- Access and recovery routes with non-empty, unique prerequisite sets.
+- Unit tests for resource, map and route invariants.
 
 ### Changed
 

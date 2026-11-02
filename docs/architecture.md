@@ -1,6 +1,6 @@
 # OpSecMap — System Architecture
 
-**Status:** Design specification; pre-implementation.
+**Status:** Design specification; implementation in progress.
 
 **Scope:** Local modeling and scenario analysis of account-access dependencies.
 
@@ -21,10 +21,12 @@ map is a subsequent presentation layer over the same domain model and evaluator.
 
 ### Implementation status
 
-The repository currently contains a Rust application scaffold and version-reporting
-entry point. The domain model, evaluator, persistence and graphical interface
-specified below are not yet implemented. Requirements in this document describe
-intended behavior; they are not assertions about existing security controls.
+The repository currently implements validated resource and route value objects,
+together with resource storage, lookup and renaming in the dependency map. Route
+storage, referential-integrity checks, evaluation, persistence and graphical
+presentation remain under development. Requirements in this document describe
+the intended complete behavior; they are not assertions about security controls
+that have not yet been implemented.
 
 ## 2. Scope and assumptions
 

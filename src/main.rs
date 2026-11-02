@@ -3,10 +3,10 @@
 //! This binary parses arguments and formats output; the logic lives in the
 //! library crate so it stays testable without a terminal.
 
-use opsecmap::{create_resource, DependencyMap, Resource, ResourceId, VERSION};
+use opsecmap::{create_resource, DependencyMap, Resource, ResourceId, Route, RouteId, VERSION};
 use std::process::ExitCode;
 
-/// Describes the resource
+/// Formats a resource for terminal output.
 #[must_use]
 fn describe_resource(r: &Resource) -> String {
     format!("Id: {} - Name: {}", r.id().as_str(), r.label())
@@ -20,7 +20,6 @@ fn main() -> ExitCode {
         return ExitCode::SUCCESS;
     }
 
-    // TODO(template): dispatch to the library here.
     println!("OpSecMap v{VERSION}");
 
     let phone = match create_resource("id1".to_string(), "Pixel 10".to_string()) {
@@ -50,15 +49,15 @@ fn main() -> ExitCode {
     let pwdman = match create_resource("id4".to_string(), "Bitwarden".to_string()) {
         Ok(resource) => resource,
         Err(error) => {
-            eprintln!("Cannot craete resource: {error:?}");
+            eprintln!("Cannot create resource: {error:?}");
             return ExitCode::FAILURE;
         }
     };
 
-    let mut inventory = DependencyMap::new();
-
+    let account_id = account.id().clone();
+    let mut dependency_map = DependencyMap::new();
     for resource in [phone, account, recovery, pwdman] {
-        match inventory.insert(resource) {
+        match dependency_map.insert(resource) {
             Ok(()) => {}
             Err(error) => {
                 eprintln!("Cannot insert resource: {error:?}");
@@ -75,16 +74,48 @@ fn main() -> ExitCode {
         }
     };
 
-    match inventory.rename(&phone_id, "Samsung Galaxy".to_string()) {
+    match dependency_map.rename(&phone_id, "Samsung Galaxy".to_string()) {
         Ok(()) => println!("Label changed successfully"),
         Err(error) => {
             eprintln!("Cannot change label {error:?}");
         }
     }
 
-    for i in inventory.resources() {
-        println!("{}", describe_resource(i));
+    for resource in dependency_map.resources() {
+        println!("{}", describe_resource(resource));
     }
 
+    let route_id = match RouteId::new("email-login".to_string()) {
+        Ok(id) => id,
+        Err(error) => {
+            eprintln!("Cannot create RouteId: {error:?}");
+            return ExitCode::FAILURE;
+        }
+    };
+    println!("Route ID: {}", route_id.as_str());
+
+    let pwdman_id = match ResourceId::new("id4".to_string()) {
+        Ok(id) => id,
+        Err(error) => {
+            eprintln!("Cannot create ResourceId {error:?}");
+            return ExitCode::FAILURE;
+        }
+    };
+    let prerequisites = vec![pwdman_id, phone_id.clone()];
+    let route = match Route::new(
+        route_id,
+        "Email login".to_string(),
+        account_id,
+        prerequisites,
+    ) {
+        Ok(route) => route,
+        Err(error) => {
+            eprintln!("Cannot create Route {error:?}");
+            return ExitCode::FAILURE;
+        }
+    };
+    for prerequisite in route.prerequisites() {
+        println!("Prerequisite: {}", prerequisite.as_str());
+    }
     ExitCode::SUCCESS
 }
