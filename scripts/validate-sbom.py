@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 onyks
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Fail unless every given SBOM is valid CycloneDX against the official schema.
 
     scripts/validate-sbom.py dist/*.cdx.json

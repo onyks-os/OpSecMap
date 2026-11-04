@@ -3,13 +3,75 @@
 //! This binary parses arguments and formats output; the logic lives in the
 //! library crate so it stays testable without a terminal.
 
-use opsecmap::{create_resource, DependencyMap, Resource, ResourceId, Route, RouteId, VERSION};
+use opsecmap::{create_resource, DependencyMap, ResourceId, Route, RouteId, VERSION};
 use std::process::ExitCode;
 
-/// Formats a resource for terminal output.
-#[must_use]
-fn describe_resource(r: &Resource) -> String {
-    format!("Id: {} - Name: {}", r.id().as_str(), r.label())
+/// Inserts a resource built from raw strings, printing an error and returning
+/// `false` on failure.
+fn insert(map: &mut DependencyMap, id: &str, label: &str) -> bool {
+    match create_resource(id.to_string(), label.to_string()) {
+        Ok(resource) => match map.insert(resource) {
+            Ok(()) => true,
+            Err(e) => {
+                eprintln!("Cannot insert resource \"{id}\": {e:?}");
+                false
+            }
+        },
+        Err(e) => {
+            eprintln!("Cannot create resource \"{id}\": {e:?}");
+            false
+        }
+    }
+}
+
+/// Inserts a route, printing an error and returning `false` on failure.
+fn insert_route(
+    map: &mut DependencyMap,
+    route_id: &str,
+    label: &str,
+    target: &str,
+    prereqs: &[&str],
+) -> bool {
+    let rid = match RouteId::new(route_id.to_string()) {
+        Ok(id) => id,
+        Err(e) => {
+            eprintln!("Cannot create RouteId \"{route_id}\": {e:?}");
+            return false;
+        }
+    };
+    let tid = match ResourceId::new(target.to_string()) {
+        Ok(id) => id,
+        Err(e) => {
+            eprintln!("Cannot create ResourceId \"{target}\": {e:?}");
+            return false;
+        }
+    };
+    let pids: Vec<ResourceId> = prereqs
+        .iter()
+        .filter_map(|p| match ResourceId::new((*p).to_string()) {
+            Ok(id) => Some(id),
+            Err(e) => {
+                eprintln!("Cannot create ResourceId \"{p}\": {e:?}");
+                None
+            }
+        })
+        .collect();
+    if pids.len() != prereqs.len() {
+        return false;
+    }
+    match Route::new(rid, label.to_string(), tid, pids) {
+        Ok(route) => match map.insert_route(route) {
+            Ok(()) => true,
+            Err(e) => {
+                eprintln!("Cannot insert route \"{route_id}\": {e:?}");
+                false
+            }
+        },
+        Err(e) => {
+            eprintln!("Cannot create route \"{route_id}\": {e:?}");
+            false
+        }
+    }
 }
 
 fn main() -> ExitCode {
@@ -22,100 +84,104 @@ fn main() -> ExitCode {
 
     println!("OpSecMap v{VERSION}");
 
-    let phone = match create_resource("id1".to_string(), "Pixel 10".to_string()) {
-        Ok(resource) => resource,
-        Err(error) => {
-            eprintln!("Cannot create resource: {error:?}");
-            return ExitCode::FAILURE;
-        }
-    };
+    let mut map = DependencyMap::new();
 
-    let account = match create_resource("id2".to_string(), "name.surname@proton.me".to_string()) {
-        Ok(resource) => resource,
-        Err(error) => {
-            eprintln!("Cannot create resource: {error:?}");
+    // Four example resources.
+    for (id, label) in [
+        ("email", "Test email"),
+        ("password-store", "Test password manager"),
+        ("phone", "Test phone"),
+        ("recovery-sheet", "Test recovery sheet"),
+    ] {
+        if !insert(&mut map, id, label) {
             return ExitCode::FAILURE;
-        }
-    };
-
-    let recovery = match create_resource("id3".to_string(), "Recovery sheet".to_string()) {
-        Ok(resource) => resource,
-        Err(error) => {
-            eprintln!("Cannot create resource: {error:?}");
-            return ExitCode::FAILURE;
-        }
-    };
-
-    let pwdman = match create_resource("id4".to_string(), "Bitwarden".to_string()) {
-        Ok(resource) => resource,
-        Err(error) => {
-            eprintln!("Cannot create resource: {error:?}");
-            return ExitCode::FAILURE;
-        }
-    };
-
-    let account_id = account.id().clone();
-    let mut dependency_map = DependencyMap::new();
-    for resource in [phone, account, recovery, pwdman] {
-        match dependency_map.insert(resource) {
-            Ok(()) => {}
-            Err(error) => {
-                eprintln!("Cannot insert resource: {error:?}");
-                return ExitCode::FAILURE;
-            }
         }
     }
 
-    let phone_id = match ResourceId::new("id1".to_string()) {
-        Ok(id) => id,
-        Err(error) => {
-            eprintln!("Cannot create ID {error:?}");
-            return ExitCode::FAILURE;
-        }
-    };
-
-    match dependency_map.rename(&phone_id, "Samsung Galaxy".to_string()) {
-        Ok(()) => println!("Label changed successfully"),
-        Err(error) => {
-            eprintln!("Cannot change label {error:?}");
-        }
-    }
-
-    for resource in dependency_map.resources() {
-        println!("{}", describe_resource(resource));
-    }
-
-    let route_id = match RouteId::new("email-login".to_string()) {
-        Ok(id) => id,
-        Err(error) => {
-            eprintln!("Cannot create RouteId: {error:?}");
-            return ExitCode::FAILURE;
-        }
-    };
-    println!("Route ID: {}", route_id.as_str());
-
-    let pwdman_id = match ResourceId::new("id4".to_string()) {
-        Ok(id) => id,
-        Err(error) => {
-            eprintln!("Cannot create ResourceId {error:?}");
-            return ExitCode::FAILURE;
-        }
-    };
-    let prerequisites = vec![pwdman_id, phone_id.clone()];
-    let route = match Route::new(
-        route_id,
-        "Email login".to_string(),
-        account_id,
-        prerequisites,
+    // Two routes toward the same target: AND inside each, OR across them.
+    if !insert_route(
+        &mut map,
+        "email-login",
+        "Email login",
+        "email",
+        &["password-store", "phone"],
     ) {
-        Ok(route) => route,
-        Err(error) => {
-            eprintln!("Cannot create Route {error:?}");
+        return ExitCode::FAILURE;
+    }
+    if !insert_route(
+        &mut map,
+        "email-recovery",
+        "Email recovery",
+        "email",
+        &["recovery-sheet"],
+    ) {
+        return ExitCode::FAILURE;
+    }
+
+    // Rename phone after routes have been registered.
+    let phone_id = match ResourceId::new("phone".to_string()) {
+        Ok(id) => id,
+        Err(e) => {
+            eprintln!("Cannot create ResourceId: {e:?}");
             return ExitCode::FAILURE;
         }
     };
-    for prerequisite in route.prerequisites() {
-        println!("Prerequisite: {}", prerequisite.as_str());
+    if let Err(e) = map.rename(&phone_id, "Backup phone".to_string()) {
+        eprintln!("Cannot rename resource: {e:?}");
+        return ExitCode::FAILURE;
     }
+
+    // Verify email-login still references the stable phone identifier.
+    let email_login_id = match RouteId::new("email-login".to_string()) {
+        Ok(id) => id,
+        Err(e) => {
+            eprintln!("Cannot create RouteId: {e:?}");
+            return ExitCode::FAILURE;
+        }
+    };
+    if let Some(route) = map.find_route(&email_login_id) {
+        if !route.prerequisites().contains(&phone_id) {
+            eprintln!("Integrity error: email-login lost phone prerequisite");
+            return ExitCode::FAILURE;
+        }
+    } else {
+        eprintln!("Route email-login not found");
+        return ExitCode::FAILURE;
+    }
+
+    // Summary counts.
+    println!("Resources: {}", map.resources().len());
+    println!("Routes:    {}", map.routes().len());
+
+    // Print each route with its target and prerequisite group.
+    for route in map.routes() {
+        println!(
+            "{} — target: {}",
+            route.id().as_str(),
+            route.target().as_str()
+        );
+        let prereqs: Vec<&str> = route
+            .prerequisites()
+            .iter()
+            .map(ResourceId::as_str)
+            .collect();
+        println!("  requires all: {}", prereqs.join(", "));
+    }
+
+    // Count and list distinct alternative routes for "email".
+    let email_id = match ResourceId::new("email".to_string()) {
+        Ok(id) => id,
+        Err(e) => {
+            eprintln!("Cannot create ResourceId: {e:?}");
+            return ExitCode::FAILURE;
+        }
+    };
+    let alternatives = map
+        .routes()
+        .iter()
+        .filter(|r| r.target() == &email_id)
+        .count();
+    println!("Alternatives for email: {alternatives}");
+
     ExitCode::SUCCESS
 }

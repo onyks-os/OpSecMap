@@ -124,7 +124,7 @@ At minimum, every user-visible change requires a [`CHANGELOG.md`](CHANGELOG.md) 
 ## Developer Certificate of Origin (DCO)
 
 By contributing to OpSecMap you certify that you have the right to submit the contribution
-under the project's MIT license, and you agree to the
+under the project's AGPL-3.0-or-later license, and you agree to the
 [Developer Certificate of Origin v1.1](https://developercertificate.org/).
 
 **Every commit must include a `Signed-off-by` line** with your real name and email:

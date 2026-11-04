@@ -19,7 +19,7 @@ OpSecMap uses **Dependabot** to monitor vulnerabilities in its dependencies, plu
 
 ## License Compliance
 
-Dependencies must carry a license compatible with the project license (MIT). Any conflict
+Dependencies must carry a license compatible with the project license (AGPL-3.0-or-later). Any conflict
 must be resolved before merging. Every direct dependency is recorded in
 [`DEPENDENCIES.md`](DEPENDENCIES.md) with its license.
 

@@ -1,6 +1,6 @@
 <!--
 Copyright (c) 2026 onyks-it
-SPDX-License-Identifier: MIT
+SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 
 # Dependency Policy and Reference
@@ -46,7 +46,7 @@ Before a new dependency is added, it must satisfy all of the following:
 
 1. **Necessity**: the functionality cannot be implemented in a reasonable amount of first-party code.
 2. **Maintenance**: the project has had a release or substantive commit within the last 12 months.
-3. **License compatibility**: the license is compatible with MIT (see [SCA_POLICY.md](SCA_POLICY.md)).
+3. **License compatibility**: the license is compatible with AGPL-3.0-or-later (see [SCA_POLICY.md](SCA_POLICY.md)).
 4. **Transitive weight**: the dependency does not pull in a disproportionate transitive tree.
 5. **Provenance**: the package is published by its upstream maintainers, not a third-party mirror.
 
