@@ -1,9 +1,15 @@
+// Copyright (c) 2026 onyks-it
+// SPDX-License-Identifier: AGPL-3.0-or-later
+//!
 //! Command line entry point for OpSecMap.
 //!
 //! This binary parses arguments and formats output; the logic lives in the
 //! library crate so it stays testable without a terminal.
 
-use opsecmap::{create_resource, DependencyMap, ResourceId, Route, RouteId, VERSION};
+use opsecmap::{
+    create_resource, AccessEvidence, AccessOrigin, DependencyMap, Evaluation, EvaluationError,
+    ResourceId, Route, RouteId, Scenario, VERSION,
+};
 use std::process::ExitCode;
 
 /// Inserts a resource built from raw strings, printing an error and returning
@@ -72,6 +78,52 @@ fn insert_route(
             false
         }
     }
+}
+
+/// Prints the resource ID and the origin recorded by an evaluation.
+fn print_evidence(evidence: &AccessEvidence) {
+    match evidence.origin() {
+        AccessOrigin::Initial => println!("{}: initially accessible", evidence.resource().as_str()),
+        AccessOrigin::Derived { route } => println!(
+            "{}: accessible through {}",
+            evidence.resource().as_str(),
+            route.as_str()
+        ),
+    }
+}
+
+/// Evaluates and prints access for a scenario on the example map.
+fn print_scenario_access(
+    map: &DependencyMap,
+    phone_id: ResourceId,
+    email_id: &ResourceId,
+) -> ExitCode {
+    // Phone starts accessible and email is excluded.
+    let Ok(scenario) = Scenario::new(vec![phone_id], vec![email_id.clone()]) else {
+        eprintln!("Cannot create example scenario");
+        return ExitCode::FAILURE;
+    };
+    let evaluation = match Evaluation::evaluate(map, &scenario) {
+        Ok(evaluation) => evaluation,
+        Err(EvaluationError::UnknownInitialResource(id)) => {
+            eprintln!("Unknown initial resource: {}", id.as_str());
+            return ExitCode::FAILURE;
+        }
+        Err(EvaluationError::UnknownExcludedResource(id)) => {
+            eprintln!("Unknown excluded resource: {}", id.as_str());
+            return ExitCode::FAILURE;
+        }
+    };
+
+    println!("Scenario access:");
+    for resource in map.resources() {
+        if let Some(evidence) = evaluation.evidence_for(resource.id()) {
+            print_evidence(evidence);
+        }
+    }
+    println!("Email accessible: {}", evaluation.is_accessible(email_id));
+
+    ExitCode::SUCCESS
 }
 
 fn main() -> ExitCode {
@@ -183,5 +235,5 @@ fn main() -> ExitCode {
         .count();
     println!("Alternatives for email: {alternatives}");
 
-    ExitCode::SUCCESS
+    print_scenario_access(&map, phone_id, &email_id)
 }

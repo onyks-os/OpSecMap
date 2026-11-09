@@ -1,3 +1,6 @@
+// Copyright (c) 2026 onyks-it
+// SPDX-License-Identifier: AGPL-3.0-or-later
+//!
 //! Property-based tests.
 //!
 //! Every function that parses or validates untrusted input belongs here. The
@@ -10,8 +13,30 @@ use proptest::prelude::*;
 
 proptest! {
     #[test]
-    fn version_is_stable(_noise in ".*") {
-        prop_assert!(!opsecmap::VERSION.is_empty());
+    fn resource_id_accepts_exactly_nonblank_values(value in ".*") {
+        match opsecmap::ResourceId::new(value.clone()) {
+            Ok(id) => {
+                prop_assert!(!value.trim().is_empty());
+                prop_assert_eq!(id.as_str(), value);
+            }
+            Err(opsecmap::ResourceError::InvalidId) => {
+                prop_assert!(value.trim().is_empty());
+            }
+        }
+    }
+
+    #[test]
+    fn route_id_accepts_exactly_nonblank_values(value in ".*") {
+        match opsecmap::RouteId::new(value.clone()) {
+            Ok(id) => {
+                prop_assert!(!value.trim().is_empty());
+                prop_assert_eq!(id.as_str(), value);
+            }
+            Err(opsecmap::RouteError::InvalidId) => {
+                prop_assert!(value.trim().is_empty());
+            }
+            Err(_) => prop_assert!(false, "unexpected route ID error"),
+        }
     }
 }
 

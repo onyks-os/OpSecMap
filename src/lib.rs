@@ -1,3 +1,6 @@
+// Copyright (c) 2026 onyks-it
+// SPDX-License-Identifier: AGPL-3.0-or-later
+//!
 //! OpSecMap (OpSecMap)
 //!
 //! Local-first, zero-trust OpSec dependency mapper. Visualize accounts, devices,
@@ -12,8 +15,8 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 mod model;
 
 pub use model::{
-    create_resource, DependencyMap, MapError, Resource, ResourceError, ResourceId, Route,
-    RouteError, RouteId,
+    create_resource, AccessEvidence, AccessOrigin, DependencyMap, Evaluation, EvaluationError,
+    MapError, Resource, ResourceError, ResourceId, Route, RouteError, RouteId, Scenario,
 };
 
 #[cfg(test)]

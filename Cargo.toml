@@ -64,6 +64,7 @@ depends = "$auto"
 assets = [
     ["target/release/opsecmap", "usr/bin/", "755"],
     ["README.md", "usr/share/doc/opsecmap/", "644"],
+    ["LICENSE", "usr/share/doc/opsecmap/", "644"],
 ]
 
 # Module: pkg-rpm

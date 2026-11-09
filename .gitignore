@@ -51,3 +51,4 @@ packaging/flatpak/cargo-sources.json
 # Local development notes (not tracked)
 # ---------------------------------------------------------------------------
 /ignore/
+.vscode/

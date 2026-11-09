@@ -1,187 +1,9 @@
+// Copyright (c) 2026 onyks-it
+// SPDX-License-Identifier: AGPL-3.0-or-later
+//!
 //! Domain model for OpSecMap.
 
-/// Stable identifier for a resource.
-///
-/// The wrapped string is private so callers cannot bypass validation.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ResourceId(String);
-
-impl ResourceId {
-    /// Creates a resource identifier.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`ResourceError::InvalidId`] when `value` is empty or contains
-    /// only whitespace.
-    pub fn new(value: String) -> Result<ResourceId, ResourceError> {
-        if value.trim().is_empty() {
-            return Err(ResourceError::InvalidId);
-        }
-        Ok(ResourceId(value))
-    }
-
-    /// Returns the identifier as borrowed text.
-    #[must_use]
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-/// A resource that can participate in access or recovery routes.
-pub struct Resource {
-    /// Human-readable name; it is not used as a reference key.
-    label: String,
-    /// Stable identity used by routes and lookups.
-    id: ResourceId,
-}
-
-impl Resource {
-    /// Creates a resource.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`ResourceError::InvalidId`] when `label` is empty or contains
-    /// only whitespace.
-    pub fn new(id: ResourceId, label: String) -> Result<Resource, ResourceError> {
-        if label.trim().is_empty() {
-            return Err(ResourceError::InvalidId);
-        }
-        Ok(Resource { label, id })
-    }
-
-    /// Returns the resource's stable identifier.
-    #[must_use]
-    pub fn id(&self) -> &ResourceId {
-        &self.id
-    }
-
-    /// Returns the human-readable label.
-    #[must_use]
-    pub fn label(&self) -> &str {
-        &self.label
-    }
-}
-
-/// Errors produced while constructing resource values.
-#[derive(Debug, PartialEq, Eq)]
-pub enum ResourceError {
-    /// An identifier or label is empty or contains only whitespace.
-    InvalidId,
-}
-
-/// Stable identifier for an access or recovery route.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RouteId(String);
-
-impl RouteId {
-    /// Creates a validated route identifier.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`RouteError::InvalidId`] when `value` is empty or contains only
-    /// whitespace.
-    pub fn new(value: String) -> Result<Self, RouteError> {
-        if value.trim().is_empty() {
-            return Err(RouteError::InvalidId);
-        }
-        Ok(Self(value))
-    }
-
-    /// Returns the identifier as borrowed text.
-    #[must_use]
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-/// A named procedure that makes one target resource accessible.
-///
-/// Every prerequisite belongs to the same route and will therefore be required
-/// together. Separate routes with the same target represent alternatives.
-pub struct Route {
-    /// Stable identity of this procedure.
-    id: RouteId,
-    /// Human-readable description of the procedure.
-    label: String,
-    /// Resource made accessible when the procedure succeeds.
-    target: ResourceId,
-    /// Resources that must all be accessible for this procedure to succeed.
-    prerequisites: Vec<ResourceId>,
-}
-
-impl Route {
-    /// Creates a route from its identity, target, and prerequisite group.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`RouteError::EmptyLabel`] for a blank label,
-    /// [`RouteError::EmptyPrerequisites`] when the route has no prerequisites,
-    /// or [`RouteError::DuplicatePrerequisites`] when the same resource appears
-    /// more than once in the prerequisite group.
-    pub fn new(
-        id: RouteId,
-        label: String,
-        target: ResourceId,
-        prerequisites: Vec<ResourceId>,
-    ) -> Result<Self, RouteError> {
-        if label.trim().is_empty() {
-            return Err(RouteError::EmptyLabel);
-        }
-        if prerequisites.is_empty() {
-            return Err(RouteError::EmptyPrerequisites);
-        }
-        let has_duplicate = prerequisites
-            .iter()
-            .enumerate()
-            .any(|(index, prerequisite)| prerequisites[index + 1..].contains(prerequisite));
-        if has_duplicate {
-            return Err(RouteError::DuplicatePrerequisites);
-        }
-        Ok(Self {
-            id,
-            label,
-            target,
-            prerequisites,
-        })
-    }
-
-    /// Returns the route's stable identifier.
-    #[must_use]
-    pub fn id(&self) -> &RouteId {
-        &self.id
-    }
-
-    /// Returns the human-readable route label.
-    #[must_use]
-    pub fn label(&self) -> &str {
-        &self.label
-    }
-
-    /// Returns the resource made accessible by this route.
-    #[must_use]
-    pub fn target(&self) -> &ResourceId {
-        &self.target
-    }
-
-    /// Returns all prerequisites as a read-only slice.
-    #[must_use]
-    pub fn prerequisites(&self) -> &[ResourceId] {
-        &self.prerequisites
-    }
-}
-
-/// Errors produced while constructing route values.
-#[derive(Debug, PartialEq, Eq)]
-pub enum RouteError {
-    /// The route identifier is empty or contains only whitespace.
-    InvalidId,
-    /// The human-readable label is empty or contains only whitespace.
-    EmptyLabel,
-    /// The route does not declare any prerequisite resource.
-    EmptyPrerequisites,
-    /// The same resource identifier occurs more than once among the prerequisites.
-    DuplicatePrerequisites,
-}
+use super::{Resource, ResourceId, Route, RouteId};
 
 /// A validated dependency map containing resources and their relationships.
 pub struct DependencyMap {
@@ -216,16 +38,13 @@ impl DependencyMap {
     /// Finds a resource by its stable identifier.
     #[must_use]
     pub fn find(&self, id: &ResourceId) -> Option<&Resource> {
-        self.resources
-            .iter()
-            .find(|&i| i.id.as_str() == id.as_str())
-            .map(|v| v as _)
+        self.resources.iter().find(|resource| resource.id() == id)
     }
 
     /// Finds a route by its stable identifier.
     #[must_use]
     pub fn find_route(&self, id: &RouteId) -> Option<&Route> {
-        self.routes.iter().find(|&i| i.id() == id).map(|v| v as _)
+        self.routes.iter().find(|route| route.id() == id)
     }
 
     /// Inserts a new resource into the DependencyMap.
@@ -235,8 +54,7 @@ impl DependencyMap {
     /// Returns [`MapError::DuplicateId`] when another resource already
     /// uses the same identifier.
     pub fn insert(&mut self, resource: Resource) -> Result<(), MapError> {
-        let found = self.find(resource.id());
-        if found.is_some() {
+        if self.find(resource.id()).is_some() {
             return Err(MapError::DuplicateId);
         }
         self.resources.push(resource);
@@ -287,7 +105,7 @@ impl DependencyMap {
         }
         for r in &mut self.resources {
             if *id == *r.id() {
-                r.label = label;
+                r.set_label(label);
                 return Ok(());
             }
         }
@@ -318,30 +136,36 @@ pub enum MapError {
     UnknownRoutePrerequisite(ResourceId),
 }
 
-/// Creates a resource from textual identifier and label values.
-///
-/// # Errors
-///
-/// Returns [`ResourceError::InvalidId`] when either input is empty or contains
-/// only whitespace.
-pub fn create_resource(id: String, label: String) -> Result<Resource, ResourceError> {
-    let resource_id = ResourceId::new(id)?;
-    Resource::new(resource_id, label)
-}
-
 #[cfg(test)]
+#[allow(clippy::expect_used)]
 mod tests {
-    use super::{
-        create_resource, DependencyMap, MapError, Resource, ResourceError, ResourceId, Route,
-        RouteError, RouteId,
-    };
+    use super::*;
+    use crate::model::{create_resource, ResourceError, RouteError};
 
     fn resource_id(value: &str) -> ResourceId {
-        ResourceId(value.to_string())
+        ResourceId::new(value.to_string()).expect("test resource ID must be valid")
     }
 
     fn route_id(value: &str) -> RouteId {
-        RouteId(value.to_string())
+        RouteId::new(value.to_string()).expect("test route ID must be valid")
+    }
+
+    fn route_snapshot(map: &DependencyMap) -> Vec<(String, String, String, Vec<String>)> {
+        map.routes()
+            .iter()
+            .map(|route| {
+                (
+                    route.id().as_str().to_string(),
+                    route.label().to_string(),
+                    route.target().as_str().to_string(),
+                    route
+                        .prerequisites()
+                        .iter()
+                        .map(|id| id.as_str().to_string())
+                        .collect(),
+                )
+            })
+            .collect()
     }
 
     #[test]
@@ -352,8 +176,8 @@ mod tests {
 
         let email = create_resource("email".to_string(), "Email di prova".to_string())?;
 
-        inventory.resources.push(phone);
-        inventory.resources.push(email);
+        assert!(inventory.insert(phone).is_ok());
+        assert!(inventory.insert(email).is_ok());
 
         let existing_id = ResourceId::new("phone".to_string())?;
         let missing_id = ResourceId::new("missing".to_string())?;
@@ -422,77 +246,58 @@ mod tests {
     }
 
     #[test]
-    fn route_id_rejects_whitespace() {
-        let result = RouteId::new("   ".to_string());
-
-        assert!(matches!(result, Err(RouteError::InvalidId)));
-    }
-
-    #[test]
-    fn route_accepts_valid_target_and_prerequisites() {
-        let result = Route::new(
-            route_id("email-login"),
-            "Email login".to_string(),
-            resource_id("email"),
-            vec![resource_id("password-store"), resource_id("phone")],
-        );
-
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn route_rejects_empty_label() {
-        let result = Route::new(
-            route_id("email-login"),
-            "   ".to_string(),
-            resource_id("email"),
-            vec![resource_id("phone")],
-        );
-
-        assert!(matches!(result, Err(RouteError::EmptyLabel)));
-    }
-
-    #[test]
-    fn route_rejects_empty_prerequisites() {
-        let result = Route::new(
-            route_id("email-login"),
-            "Email login".to_string(),
-            resource_id("email"),
-            Vec::new(),
-        );
-
-        assert!(matches!(result, Err(RouteError::EmptyPrerequisites)));
-    }
-
-    #[test]
-    fn route_rejects_duplicate_prerequisite() {
-        let result = Route::new(
-            route_id("email-login"),
-            "Email login".to_string(),
-            resource_id("email"),
-            vec![resource_id("phone"), resource_id("phone")],
-        );
-
-        assert!(matches!(result, Err(RouteError::DuplicatePrerequisites)));
-    }
-
-    #[test]
-    fn route_accepts_target_as_prerequisite() {
-        let result = Route::new(
-            route_id("email-cycle"),
-            "Circular email access".to_string(),
-            resource_id("email"),
-            vec![resource_id("email")],
-        );
-
-        assert!(result.is_ok());
-    }
-
-    #[test]
     fn new_map_has_zero_resources_and_zero_routes() {
         let map = DependencyMap::new();
         assert_eq!(map.resources().len(), 0);
         assert_eq!(map.routes().len(), 0);
+        assert!(map.empty());
+    }
+
+    #[test]
+    fn default_map_is_empty_and_becomes_nonempty_after_insert() {
+        let mut map = DependencyMap::default();
+        assert!(map.empty());
+        let phone =
+            Resource::new(resource_id("phone"), "Phone".to_string()).expect("valid resource");
+        assert!(map.insert(phone).is_ok());
+        assert!(!map.empty());
+    }
+
+    #[test]
+    fn rename_rejects_blank_label_without_changing_resource() {
+        let mut map = DependencyMap::default();
+        let phone =
+            Resource::new(resource_id("phone"), "Original".to_string()).expect("valid resource");
+        assert!(map.insert(phone).is_ok());
+
+        for label in ["", " \t\n "] {
+            assert!(matches!(
+                map.rename(&resource_id("phone"), label.to_string()),
+                Err(MapError::EmptyLabel)
+            ));
+            assert_eq!(
+                map.find(&resource_id("phone")).map(Resource::label),
+                Some("Original")
+            );
+        }
+    }
+
+    #[test]
+    fn rename_rejects_absent_id_without_changing_other_resources() {
+        let mut map = DependencyMap::default();
+        let phone =
+            Resource::new(resource_id("phone"), "Original".to_string()).expect("valid resource");
+        assert!(map.insert(phone).is_ok());
+
+        assert!(matches!(
+            map.rename(&resource_id("missing"), "Updated".to_string()),
+            Err(MapError::NotFound)
+        ));
+        assert_eq!(map.resources().len(), 1);
+        assert_eq!(
+            map.find(&resource_id("phone")).map(Resource::label),
+            Some("Original")
+        );
     }
 
     #[test]
@@ -517,9 +322,8 @@ mod tests {
             ("phone", "Test phone"),
             ("recovery-sheet", "Test recovery sheet"),
         ] {
-            let resource = Resource::new(ResourceId(id.to_string()), label.to_string())?;
-            // IDs are distinct by construction; DuplicateId cannot occur here.
-            let _ = map.insert(resource);
+            let resource = Resource::new(resource_id(id), label.to_string())?;
+            assert!(map.insert(resource).is_ok(), "test fixture must be valid");
         }
         Ok(map)
     }
@@ -566,12 +370,12 @@ mod tests {
         )?;
 
         assert!(map.insert_route(first).is_ok());
-        let count_before = map.routes().len();
+        let before = route_snapshot(&map);
 
         let result = map.insert_route(duplicate);
         assert!(matches!(result, Err(MapError::DuplicateRouteId)));
 
-        assert_eq!(map.routes().len(), count_before);
+        assert_eq!(route_snapshot(&map), before);
 
         Ok(())
     }
@@ -582,7 +386,14 @@ mod tests {
         // UnknownRouteTarget carrying the problematic identifier, without
         // adding any route.
         let mut map = map_with_example_resources().map_err(|_| RouteError::InvalidId)?;
-        let count_before = map.routes().len();
+        let existing = Route::new(
+            route_id("email-recovery"),
+            "Email recovery".to_string(),
+            resource_id("email"),
+            vec![resource_id("recovery-sheet")],
+        )?;
+        assert!(map.insert_route(existing).is_ok());
+        let before = route_snapshot(&map);
 
         let route = Route::new(
             route_id("broken-login"),
@@ -597,7 +408,7 @@ mod tests {
             Err(MapError::UnknownRouteTarget(ref id)) if id.as_str() == "ghost"
         ));
 
-        assert_eq!(map.routes().len(), count_before);
+        assert_eq!(route_snapshot(&map), before);
 
         Ok(())
     }
@@ -609,7 +420,14 @@ mod tests {
         // UnknownRoutePrerequisite carrying the problematic identifier, without
         // adding any route.
         let mut map = map_with_example_resources().map_err(|_| RouteError::InvalidId)?;
-        let count_before = map.routes().len();
+        let existing = Route::new(
+            route_id("email-recovery"),
+            "Email recovery".to_string(),
+            resource_id("email"),
+            vec![resource_id("recovery-sheet")],
+        )?;
+        assert!(map.insert_route(existing).is_ok());
+        let before = route_snapshot(&map);
 
         let route = Route::new(
             route_id("email-login"),
@@ -624,32 +442,12 @@ mod tests {
             Err(MapError::UnknownRoutePrerequisite(ref id)) if id.as_str() == "ghost-key"
         ));
 
-        assert_eq!(map.routes().len(), count_before);
+        assert_eq!(route_snapshot(&map), before);
 
         Ok(())
     }
 
     // --- AND, OR, cycles and shared prerequisites ---
-
-    #[test]
-    fn and_both_prerequisites_stay_in_the_same_route() -> Result<(), RouteError> {
-        // AND is represented by listing multiple ResourceIds inside a single
-        // route's prerequisite Vec. The caller reads them back as a single
-        // slice: every element in that slice is required together.
-        let route = Route::new(
-            route_id("email-login"),
-            "Email login".to_string(),
-            resource_id("email"),
-            vec![resource_id("password-store"), resource_id("phone")],
-        )?;
-
-        let prereqs = route.prerequisites();
-        assert_eq!(prereqs.len(), 2);
-        assert!(prereqs.contains(&resource_id("password-store")));
-        assert!(prereqs.contains(&resource_id("phone")));
-
-        Ok(())
-    }
 
     #[test]
     fn or_two_routes_with_same_target_are_both_accepted() -> Result<(), RouteError> {
@@ -691,12 +489,12 @@ mod tests {
         // A cycle (a → b and b → a) is a valid structure: the map only checks
         // that referenced resources exist, not whether the cycle is reachable.
         let mut map = DependencyMap::new();
-        let res_a = Resource::new(ResourceId("a".to_string()), "Resource A".to_string())
+        let res_a = Resource::new(resource_id("a"), "Resource A".to_string())
             .map_err(|_| RouteError::InvalidId)?;
-        let res_b = Resource::new(ResourceId("b".to_string()), "Resource B".to_string())
+        let res_b = Resource::new(resource_id("b"), "Resource B".to_string())
             .map_err(|_| RouteError::InvalidId)?;
-        let _ = map.insert(res_a);
-        let _ = map.insert(res_b);
+        assert!(map.insert(res_a).is_ok());
+        assert!(map.insert(res_b).is_ok());
 
         let a_to_b = Route::new(
             route_id("a-to-b"),
