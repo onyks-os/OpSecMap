@@ -23,7 +23,7 @@ PROJECT_SHORT := OpSecMap
 PROJECT_SLUG  := OpSecMap
 PROJECT_PKG   := opsecmap
 PROJECT_DIST  := opsecmap
-GITHUB_OWNER  := onyks-it
+GITHUB_OWNER  := onyks-os
 # Prefer the language manifest over a second copy of the version number. Two
 # copies drift, and the one that drifts is the one nobody edits: a scaffolded
 # project hit exactly this on its first release, with `make release-check`

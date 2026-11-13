@@ -1,97 +1,33 @@
-# Security Policy
+# Security policy
 
-## Reporting a Vulnerability
+## Report a vulnerability
 
-We take the security of OpSecMap seriously. If you discover a security vulnerability in this
-project, please **do not open a public issue**.
+Please report security issues privately so the maintainer can investigate before
+details become public. If the repository's
+[Security Advisories page](https://github.com/onyks-os/OpSecMap/security/advisories)
+offers **Report a vulnerability**, use that form. You can also email
+`onyks@protonmail.com`.
 
-### How to report (preferred method)
+Include the affected commit or version, steps to reproduce, the expected and
+actual behavior, and the impact you believe the issue has. Please avoid sending
+real passwords, recovery codes, or other private account material.
 
-Use GitHub's **private vulnerability reporting**:
+The maintainer will review reports and coordinate disclosure with the reporter.
+There is no promised response time, paid bug bounty, or published support window
+at this stage.
 
-1. Go to [https://github.com/onyks-it/OpSecMap/security/advisories](https://github.com/onyks-it/OpSecMap/security/advisories)
-2. Click **"Report a vulnerability"**
-3. Fill out the form with as much detail as possible:
-   - Description of the issue
-   - Steps to reproduce
-   - Affected versions
-   - Potential impact
+## Current security scope
 
-### Alternative contact
+OpSecMap is an early Rust library and a CLI that runs a fixed example. The library
+validates resource and route structure and evaluates the access described by a map
+and scenario in memory. A wrong result, an unexpected panic on valid input, or a
+way to bypass documented validation is worth reporting.
 
-If you cannot use GitHub's private reporting, email the maintainers at `onyks@protonmail.com`.
+The application does not yet load personal maps, persist state, encrypt data, or
+provide an interactive interface. It does not store passwords or recovery-code
+values. The evaluator cannot verify a provider's real recovery rules, and its
+availability result is not a confidentiality or data-integrity assessment. See the
+[security assessment](docs/security-assessment.md) for the current boundaries.
 
-Email may have a lower response priority than GitHub advisories.
-
-## What to expect
-
-- You will receive an acknowledgment within **48 hours**.
-- We will investigate and keep you informed of progress at least every **7 days**.
-- Once a fix is ready, we will credit you in the release notes (unless you prefer to remain anonymous).
-
-## Public Disclosure
-
-When a vulnerability is confirmed and fixed, OpSecMap publishes a public advisory containing:
-
-- Affected versions
-- Description of the issue
-- Mitigation or upgrade instructions
-
-The advisory is published on:
-
-- **GitHub Security Advisories** — `https://github.com/onyks-it/OpSecMap/security/advisories`
-- **Release notes** of the fixed version
-
-We do not currently assign CVEs, but may do so in the future.
-
-## Scope
-
-This policy applies to the OpSecMap core modules and its public interfaces.
-
-The following are considered **critical scope targets**:
-
-<!-- TODO(template): list the concrete attack outcomes that qualify as critical for THIS project.
-     Be specific: "bypassing X to reach Y", not "any security issue". -->
-
-1. **<!-- TODO(template): critical target 1 -->**
-2. **<!-- TODO(template): critical target 2 -->**
-
-Out of scope:
-
-- Vulnerabilities in third-party dependencies already tracked upstream (report them upstream, then
-  open an issue here referencing the advisory).
-- Findings that require an already-compromised host or physical access.
-
-For the full STRIDE threat model, trust boundaries, risk severity ratings, and security controls
-inventory, see **[`docs/security-assessment.md`](docs/security-assessment.md)**.
-
-## Informal Bug Bounty & Hall of Fame
-
-There is no financial budget for monetary rewards, but the project recognizes researchers who help
-make OpSecMap safer. For valid, in-scope reports that are confirmed and resolved:
-
-- **Permanent inclusion** in [`HALL_OF_FAME.md`](HALL_OF_FAME.md), with a link to the researcher's
-  GitHub profile or personal website.
-- **Honorable mention** in the GitHub Release Notes of the fixed version.
-
-## Release support policy
-
-| Version   | Support status      | End of life                    |
-| --------- | ------------------- | ------------------------------ |
-| 0.1.0   | ✅ Security fixes   | When the next minor is released |
-| < 0.1.0 | ❌ Unsupported      |                                |
-
-- Security fixes are provided only for the latest minor version.
-- If you need long-term support, contact the maintainers.
-
-## Security Hardening of the Project Itself
-
-- All dependencies are monitored by Dependabot; see [`SCA_POLICY.md`](SCA_POLICY.md).
-- Static analysis runs on every pull request; see [`SAST_POLICY.md`](SAST_POLICY.md).
-- Secrets are never committed; see [`SECRETS_POLICY.md`](SECRETS_POLICY.md).
-- Release artifacts are signed and reproducible; see [`docs/verification.md`](docs/verification.md).
-
-## Acknowledgments
-
-We thank the community for responsibly disclosing security issues. Contributors who report valid
-vulnerabilities are publicly acknowledged unless they request otherwise.
+There are currently no published GitHub release artifacts to verify or install.
+The source and the declared dependencies can be inspected in this repository.

@@ -1,13 +1,13 @@
 // Copyright (c) 2026 onyks-it
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //!
-//! OpSecMap (OpSecMap)
+//! OpSecMap
 //!
-//! Local-first, zero-trust OpSec dependency mapper. Visualize accounts, devices,
-//! backups and recovery paths to find single points of failure before an incident.
+//! In-memory model and evaluator for account access dependencies. The library
+//! records reachable resources, their access origins, and missing prerequisites
+//! for blocked routes. The binary currently runs a fixed example.
 //!
-//! Everything public in this crate is covered by semantic versioning; items that
-//! are not exported here may change in any release.
+//! The public API is still evolving during early development.
 
 /// The crate version, taken from `Cargo.toml` at compile time.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -15,8 +15,9 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 mod model;
 
 pub use model::{
-    create_resource, AccessEvidence, AccessOrigin, DependencyMap, Evaluation, EvaluationError,
-    MapError, Resource, ResourceError, ResourceId, Route, RouteError, RouteId, Scenario,
+    create_resource, AccessEvidence, AccessOrigin, BlockedRoute, DependencyMap, Evaluation,
+    EvaluationError, MapError, Resource, ResourceError, ResourceId, Route, RouteError, RouteId,
+    Scenario,
 };
 
 #[cfg(test)]

@@ -1,9 +1,6 @@
 # How-To Guides
 
-Goal-oriented recipes for users who already know the basics. Each guide assumes a working
-installation — if you do not have one, start with the [Quickstart](../tutorials/quickstart.md).
-
-<!-- TODO(template): add one page per real user goal, and link it here. Good how-to titles start with
-     a verb: "Configure X", "Migrate from Y", "Debug Z". -->
-
-- <!-- TODO(template): [Do the thing](do-the-thing.md) -->
+There are no user workflows to document yet: the CLI currently runs only the
+built-in example. Start with the [quickstart](../tutorials/quickstart.md) to see
+it in action. The [roadmap](https://github.com/onyks-os/OpSecMap/blob/main/ROADMAP.md)
+tracks support for loading and evaluating personal maps.

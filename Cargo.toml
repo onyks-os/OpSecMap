@@ -3,13 +3,13 @@ name = "opsecmap"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.75"
-description = "Local-first, zero-trust OpSec dependency mapper. Visualize accounts, devices, backups and recovery paths to find single points of failure before an incident."
+description = "In-memory Rust model and scenario evaluator for account access dependencies"
 authors = ["onyks"]
 license = "AGPL-3.0-or-later"
 readme = "README.md"
-repository = "https://github.com/onyks-it/OpSecMap"
-homepage = "https://onyks-it.github.io/opsecmap/"
-documentation = "https://onyks-it.github.io/opsecmap/"
+repository = "https://github.com/onyks-os/OpSecMap"
+homepage = "https://github.com/onyks-os/OpSecMap"
+documentation = "https://github.com/onyks-os/OpSecMap/tree/main/docs"
 keywords = ["OpSecMap"]
 categories = []
 exclude = ["docs/", ".github/", "tests/fixtures/"]
@@ -58,7 +58,7 @@ maintainer = "onyks <onyks@protonmail.com>"
 copyright = "2026, onyks"
 section = "utils"
 priority = "optional"
-extended-description = "Local-first, zero-trust OpSec dependency mapper. Visualize accounts, devices, backups and recovery paths to find single points of failure before an incident."
+extended-description = "In-memory Rust model and scenario evaluator for account access dependencies. The CLI currently runs a fixed example."
 # $auto: the shared libraries the binary links, resolved by dpkg-shlibdeps.
 depends = "$auto"
 assets = [
@@ -71,7 +71,7 @@ assets = [
 # `make package-rpm` builds the .rpm with cargo-generate-rpm from this table.
 # https://github.com/cat-in-136/cargo-generate-rpm#configuration
 [package.metadata.generate-rpm]
-summary = "Local-first, zero-trust OpSec dependency mapper. Visualize accounts, devices, backups and recovery paths to find single points of failure before an incident."
+summary = "In-memory account access dependency evaluator"
 release = "1"
 assets = [
     { source = "target/release/opsecmap", dest = "/usr/bin/opsecmap", mode = "755" },

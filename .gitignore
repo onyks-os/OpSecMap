@@ -29,6 +29,7 @@ rustc-ice-*.txt
 # Rust
 # ---------------------------------------------------------------------------
 /target/
+/site/
 **/*.rs.bk
 *.pdb
 # Cargo.lock is committed for binaries and ignored for libraries.

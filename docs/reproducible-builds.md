@@ -1,5 +1,9 @@
 # Reproducible Builds
 
+There is no published OpSecMap release to compare against an independent build.
+The following describes the intended checks in the repository; it is not a claim
+that any published artifact has been reproduced.
+
 The same commit is meant to build to the same bytes, on any machine with the same toolchain. That is
 what lets anyone check a release independently: rebuild the tag, compare with what was published.
 
@@ -30,4 +34,5 @@ A local rebuild is compared against your own second build, not against the relea
 distribution can compress the same files differently (zlib and zlib-ng produce different bytes), so
 the authoritative comparison with a published release is the one CI makes on the same runner image.
 
-<!-- TODO(template): record what is known not to reproduce, and why, or state that everything does. -->
+No published release has yet been checked against an independent rebuild, so
+cross-machine byte-for-byte reproducibility is not established for OpSecMap.

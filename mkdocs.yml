@@ -1,14 +1,11 @@
-site_name: OpSecMap - OpSecMap
-site_url: https://onyks-it.github.io/opsecmap/
-# Quoted: the default description is "TODO: describe <project>", and an unquoted
-# YAML value containing ": " is a syntax error, not a string.
-site_description: "Local-first, zero-trust OpSec dependency mapper. Visualize accounts, devices, backups and recovery paths to find single points of failure before an incident."
-site_author: onyks-it
-site_dir: ../onyks-it.github.io/opsecmap
+site_name: OpSecMap
+site_description: "An in-memory Rust model and scenario evaluator for account access dependencies."
+site_author: onyks
+site_dir: site
 docs_dir: docs/web
-repo_url: https://github.com/onyks-it/OpSecMap
-repo_name: onyks-it/OpSecMap
-copyright: Copyright &copy; 2026 onyks-it — AGPL-3.0-or-later
+repo_url: https://github.com/onyks-os/OpSecMap
+repo_name: onyks-os/OpSecMap
+copyright: Copyright &copy; 2026 onyks — AGPL-3.0-or-later
 
 theme:
   name: material

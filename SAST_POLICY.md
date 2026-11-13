@@ -1,30 +1,18 @@
-# SAST Policy
+# Static analysis
 
-OpSecMap uses **CodeQL** (GitHub) and the project linter for static analysis (SAST) of the
-codebase. Both run on every pull request targeting `main`.
+The repository configures Rust formatting and Clippy in
+[`ci.yml`](.github/workflows/ci.yml), plus CodeQL in
+[`codeql.yml`](.github/workflows/codeql.yml). These workflows run on pull
+requests to `main`; the configuration itself does not guarantee that every
+finding has been resolved or that branch protection is enabled.
 
-## Severity Thresholds
+Local checks for Rust changes:
 
-- **Critical / High**: must be resolved **before merging** the pull request.
-- **Medium**: resolved within **7 days** of identification.
-- **Low**: acceptable for merging, but should be resolved in the next release.
+```sh
+cargo fmt --all -- --check
+cargo clippy --all-targets --all-features -- -D warnings
+```
 
-## Remediation Process
-
-1. The pull request is blocked if CodeQL detects Critical/High findings.
-2. The developer fixes the code, or marks the alert as a false positive using the appropriate
-   inline suppression comment.
-3. Once corrected, the status check passes and the pull request can be merged.
-
-## False Positives
-
-If a finding is deemed non-exploitable or a false positive, it must be suppressed inline with a
-comment explaining the rationale. Blanket suppressions at file or project level are not accepted.
-
-## Tooling
-
-| Tool           | Scope                          | Where it runs                          |
-| :------------- | :----------------------------- | :------------------------------------- |
-| CodeQL         | Semantic dataflow analysis     | `.github/workflows/codeql.yml`         |
-| Clippy    | Style, bug patterns, complexity | `make lint`, `.github/workflows/ci.yml` |
-| ShellCheck     | Shell scripts under `scripts/` | `make lint`, `.github/workflows/ci.yml` |
+Review a finding in its code context. Fix confirmed defects and document the
+reason for any suppression. Security-relevant findings should be reported or
+handled through [SECURITY.md](SECURITY.md).

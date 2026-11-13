@@ -1,8 +1,9 @@
 # Distribution Packages
 
-Besides what `make release-artifacts` builds, OpSecMap publishes distribution packages. Each
-package format has its own workflow, because each one builds in its own environment: a distribution
-container, Flathub's CI image.
+OpSecMap has no published distribution packages yet. This repository contains
+packaging files and workflows for future releases. The table below describes
+their intended formats and workflow identities; it is not an installation guide
+or evidence that a package has passed installation tests.
 
 | Workflow | Builds | Installed and run in | Signing identity |
 | :-- | :-- | :-- | :-- |
@@ -14,7 +15,7 @@ container, Flathub's CI image.
 Only the rows whose workflow exists in [`.github/workflows/`](../.github/workflows/) apply to this
 repository.
 
-## What every package goes through
+## Intended checks before publishing
 
 1. **Built** by `make package-<format>` — the same target a maintainer runs locally.
 2. **Installed in a clean container** of each distribution it targets, through that distribution's
@@ -23,9 +24,9 @@ repository.
    a file installed where the program does not look all pass on the build machine.
 3. **Described** by a CycloneDX SBOM read from the package itself (`make sbom-files`; see
    [docs/sbom.md](sbom.md)).
-4. **Signed** with Sigstore by its own workflow, and attached to the GitHub Release that `release.yml`
-   created for the tag. Verify one as [docs/verification.md](verification.md) describes, with the
-   identity from the table above.
+4. **Signed** with Sigstore by its own workflow and attached to a GitHub Release.
+   Verification instructions must be added to [docs/verification.md](verification.md)
+   when the first packages are published.
 
 On a pull request that touches the packaging, the workflow runs steps 1–3 and publishes nothing, so a
 broken package is found in review rather than at release time.

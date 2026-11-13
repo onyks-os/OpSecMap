@@ -7,7 +7,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 ## Status
 
-Accepted (v0.1.0)
+Accepted during 0.1.0 development
 
 ## Context
 

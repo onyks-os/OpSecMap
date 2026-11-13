@@ -1,30 +1,14 @@
-# Software Composition Analysis (SCA) Policy
+# Dependency review
 
-OpSecMap uses **Dependabot** to monitor vulnerabilities in its dependencies, plus
-`make audit` for on-demand local scanning.
+The repository configures Dependabot updates for Cargo, GitHub Actions, and the
+documentation toolchain in [`.github/dependabot.yml`](.github/dependabot.yml).
+The CI workflow also configures a Rust dependency audit. Direct dependencies
+and their purpose are listed in [DEPENDENCIES.md](DEPENDENCIES.md).
 
-## Severity Thresholds
+Before accepting an update, review its changelog, license, transitive changes,
+and relevance to this project. Run the applicable build and tests. A security
+alert should be investigated in the context of how OpSecMap uses that
+dependency; accepted risks should be recorded rather than silently ignored.
 
-- **Critical / High**: must be resolved within **7 days** of notification.
-- **Medium**: resolved within **30 days**.
-- **Low**: resolved in the next release, or accepted with a documented justification.
-
-## Remediation Process
-
-1. Dependabot automatically opens a pull request with the update.
-2. The pull request is merged once CI passes.
-3. If the update is not possible (for example a breaking change), we evaluate a backported patch or
-   isolation of the dependency, and document the accepted risk in
-   [`docs/security-assessment.md`](docs/security-assessment.md).
-
-## License Compliance
-
-Dependencies must carry a license compatible with the project license (AGPL-3.0-or-later). Any conflict
-must be resolved before merging. Every direct dependency is recorded in
-[`DEPENDENCIES.md`](DEPENDENCIES.md) with its license.
-
-## Before Each Release
-
-- Run `make audit` and verify there are no unresolved vulnerabilities.
-- Review outstanding Dependabot alerts manually.
-- If unresolved Critical or High vulnerabilities remain, **the release is blocked** until remediation.
+There is no published release or committed remediation-time guarantee at this
+stage. Security reports follow [SECURITY.md](SECURITY.md).

@@ -1,9 +1,12 @@
-# Support Policy
+# Support
 
-- **Current version** (`0.1.0`): active support — security fixes and critical bug fixes
-  until the next major release.
-- **Previous versions**: end of support. Upgrading is strongly recommended.
-- **Support channels**: open a [GitHub issue](https://github.com/onyks-it/OpSecMap/issues)
-  for bug reports or feature requests. There is no paid support.
-- **Response expectations**: this project is maintained in the maintainers' free time. Issues are
-  triaged on a best-effort basis; security reports are prioritized (see [SECURITY.md](SECURITY.md)).
+OpSecMap is in early development and has no published release or version support
+window. The `0.1.0` number in `Cargo.toml` is the current source version.
+
+For bugs, questions, and feature proposals, open a
+[GitHub issue](https://github.com/onyks-os/OpSecMap/issues). Include the commit
+or version, operating system, steps to reproduce, and relevant output. Issues
+are reviewed on a best-effort basis; there is no paid support or response-time
+commitment.
+
+Report security concerns privately as described in [SECURITY.md](SECURITY.md).

@@ -1,8 +1,12 @@
 # Software Bill of Materials
 
-Every OpSecMap release artifact is published with a CycloneDX SBOM beside it: `<artifact>.cdx.json`.
-Each SBOM is checksummed in `SHA256SUMS` and signed with Sigstore like the artifact it describes, so
-it can be verified exactly as [docs/verification.md](verification.md) describes.
+There are no published OpSecMap release artifacts or SBOMs yet. The following is
+the intended format for a future release.
+
+Each release artifact is intended to have a CycloneDX SBOM beside it: `<artifact>.cdx.json`.
+The intended release workflow would include each SBOM in `SHA256SUMS` and sign it
+with Sigstore alongside its artifact. There are no current assets to check;
+[verification.md](verification.md) describes how to inspect the source today.
 
 ## One SBOM per artifact, read from the artifact
 

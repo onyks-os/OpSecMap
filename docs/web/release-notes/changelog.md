@@ -1,17 +1,5 @@
 # Release Notes & Changelog
 
-All notable changes to OpSecMap (OpSecMap) are documented here.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
----
-
-<!-- TODO(template): keep this page in sync with the root CHANGELOG.md on every release.
-     `make docs-sync` copies the root changelog here. -->
-
-## [0.1.0] - 2026-10-10
-
-### Added
-
-- First release.
+The [project changelog](https://github.com/onyks-os/OpSecMap/blob/main/CHANGELOG.md)
+records changes made during development. There is no published GitHub release yet;
+the CLI still runs a fixed example.

@@ -1,36 +1,16 @@
-# Dynamic Analysis Policy
+# Dynamic analysis
 
-OpSecMap uses property-based testing and fuzzing to exercise parsing and validation code
-paths with generated inputs.
+The current repository uses `proptest` to generate inputs for identifier
+validation. Run the tests locally with `cargo test`. The
+[`fuzzing.yml`](.github/workflows/fuzzing.yml) workflow runs the project's
+property-test target on pull requests and on a weekly schedule. It is
+property-based testing, not coverage-guided fuzzing of an input parser.
 
-## Scope
+The CLI does not yet read map files or other untrusted application input, and
+there is no deserializer or recovery-procedure parser to fuzz. When those input
+boundaries are added, the relevant generators and fuzz targets should be added
+alongside them.
 
-The fuzzer exercises the following attack surfaces:
-
-<!-- TODO(template): list every parser, deserializer, regex, and validation routine reachable from
-     untrusted input. These are the functions the fuzzer must target. -->
-
-- `<!-- TODO(template): module.function -->`
-
-## Process for Vulnerabilities Found by the Fuzzer
-
-1. **Triage**: a crash or logic error found by the fuzzer is assigned `P1` (Critical) priority in the
-   issue tracker.
-2. **Remediation**: a fix **must** be merged within **7 days** of confirmation.
-3. **Verification**: after the fix, the fuzzer **must** run successfully on the updated codebase with
-   a high example count (for example `max_examples=10000`) to confirm the issue is resolved. The
-   failing input is added to the regression corpus.
-4. **Documentation**: every confirmed vulnerability gets an entry in [`CHANGELOG.md`](CHANGELOG.md)
-   under a `### Security` subsection, describing the issue and the fix.
-
-## Assertions
-
-Assertions are enabled during all test and fuzzing runs. Optimization flags that strip assertions are
-**never** used in CI.
-
-## Automation
-
-The fuzzing workflow (`.github/workflows/fuzzing.yml`) runs automatically:
-
-- On every pull request targeting `main`.
-- Weekly, every Sunday at midnight UTC, via scheduled cron.
+If a generated case reveals a security issue, report it through
+[SECURITY.md](SECURITY.md), keep the failing input as a regression case without
+including real secrets, and verify the fix with the test suite.

@@ -1,24 +1,25 @@
 # Reference: Command Line Interface
 
-Exhaustive, non-narrative reference for every command and option. This page mirrors
-[`docs/interfaces.md`](https://github.com/onyks-it/OpSecMap/blob/main/docs/interfaces.md);
-both must be updated together.
+The CLI currently runs one built-in demonstration. It accepts no map or scenario
+files. This page documents the behavior implemented in `src/main.rs`.
 
 ---
 
-## Commands
+## Invocation
 
-### `<!-- TODO(template): command -->`
-
-<!-- TODO(template): synopsis, description, options table, exit codes, and one example. -->
-
-```text
-Usage: ...
+```sh
+cargo run --
+cargo run -- --version
 ```
 
-| Option | Type | Default | Description |
-| :----- | :--- | :------ | :---------- |
-| | | | |
+| Argument | Behavior |
+| :------- | :------- |
+| `--version`, `-V` | Print `opsecmap 0.1.0` and exit. |
+| No argument | Build and evaluate the fixed example, then print its summary. |
+
+Other arguments are currently ignored; there is no `--help` handler or input-file
+option yet. The demonstration prints four resources, two routes, and a scenario
+where `phone` is initially accessible and `email` is excluded.
 
 ---
 
@@ -27,5 +28,4 @@ Usage: ...
 | Code | Meaning |
 | :--- | :------ |
 | `0`  | Success. |
-| `1`  | Generic error. |
-| `2`  | Invalid usage. |
+| `1`  | The built-in example could not be constructed or evaluated. |

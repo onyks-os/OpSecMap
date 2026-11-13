@@ -1,57 +1,61 @@
 # Tutorial: Quickstart
 
-This tutorial takes you from nothing installed to a working OpSecMap setup. It is a learning
-exercise: follow it in order, and do not substitute your own values until the end.
+This tutorial runs the example currently built into the CLI. The application does
+not yet accept a personal map or scenario.
 
-**You will need:** Rust 1.75 or newer, and about 10 minutes.
+**You will need:** Rust 1.75 or newer with Cargo.
 
 ---
 
-## 1. Install
+## 1. Get the source
 
 ```bash
-<!-- TODO(template): the install command. -->
+git clone https://github.com/onyks-os/OpSecMap.git
+cd OpSecMap
 ```
 
-Verify the installation:
+Check that Cargo can build the project:
 
 ```bash
-<!-- TODO(template): the version command. -->
+cargo run -- --version
 ```
 
-You should see the version number printed.
+You should see `opsecmap 0.1.0`.
 
-## 2. <!-- TODO(template): first meaningful step -->
+## 2. Run the example
 
 ```bash
-<!-- TODO(template) -->
+cargo run --
 ```
 
-**What just happened:** <!-- TODO(template): explain the effect, so the reader builds a mental model
-rather than copying commands. -->
+The program creates four sample resources and two alternative routes to an email
+account. Login requires both a password source and a phone; recovery requires an
+offline sheet. It then evaluates a scenario where the phone starts available but
+the email account is explicitly excluded.
 
-## 3. Verify It Works
+## 3. Read the result
 
-```bash
-<!-- TODO(template): the command that proves the system is working. -->
-```
-
-Expected output:
+The example output ends with:
 
 ```text
-<!-- TODO(template) -->
+Scenario access:
+phone: initially accessible
+Email accessible: false
 ```
 
-## 4. Clean Up
+The email account remains inaccessible because the scenario excludes it. The
+program does not save any map or scenario to disk. The tests exercise other
+cases, including chains, alternatives, exclusions and cycles.
+
+To run those tests yourself:
 
 ```bash
-<!-- TODO(template): how to undo everything this tutorial did. -->
+cargo test
 ```
 
 ---
 
 ## Next Steps
 
-- [How-To Guides](../how-to/index.md) — solve a specific problem.
-- [Explanation: Architecture](../explanation/architecture.md) — understand the design.
-- [Reference](../reference/cli.md) — the exhaustive option list.
+- [Architecture](../explanation/architecture.md) — understand the model and its limits.
+- [CLI reference](../reference/cli.md) — see the current command behavior.

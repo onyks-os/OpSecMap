@@ -3,78 +3,43 @@ Copyright (c) 2026 onyks-it
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 
-# OpSecMap — External Interfaces Reference
+# OpSecMap — current external interfaces
 
-This document is the contract between OpSecMap and everything outside it. Any change to what
-is described here is a change to the public interface and must follow
-[Semantic Versioning](https://semver.org/).
+**Status:** early development. This page describes the interfaces implemented
+today; see [the architecture document](architecture.md) for intended behavior.
 
-## Table of Contents
+## Command line
 
-1. [Command Line Interface](#1-command-line-interface)
-2. [Configuration](#2-configuration)
-3. [Exit Codes](#3-exit-codes)
-4. [Programmatic API](#4-programmatic-api)
-5. [Files & System Integration](#5-files--system-integration)
-6. [External Network Endpoints](#6-external-network-endpoints)
+Run the fixed demonstration with `opsecmap` (or `cargo run --` from the repository).
+It constructs four sample resources and two routes to an email account, then
+evaluates a scenario where the phone is initially accessible and the email
+account is excluded. The command prints the routes and resulting access.
 
----
+`opsecmap --version` and `opsecmap -V` print `opsecmap 0.1.0` and exit.
+No other argument is currently parsed; unsupported arguments are ignored and the
+demonstration still runs. There is no `--help` handler, configuration file, map
+input, scenario input, or output format flag.
 
-## 1. Command Line Interface
+| Exit code | Meaning |
+| :-------- | :------ |
+| `0` | Version printed or demonstration completed. |
+| `1` | The built-in example could not be constructed or evaluated. |
 
-| Command | Description | Requires privileges |
-| :------ | :---------- | :------------------ |
-| <!-- TODO(template): one row per command. --> | | |
+## Rust library
 
-### Global Options
+The `opsecmap` crate exposes resources, routes, a dependency map, scenarios and
+evaluations. Callers construct a map and scenario in memory, then call
+`Evaluation::evaluate(&map, &scenario)`. The returned evaluation can answer
+whether a resource is accessible and give the initial or route-based evidence
+for an accessible resource. It also exposes blocked routes and their missing
+prerequisites for targets that remain inaccessible and are not excluded. See the
+public types and documentation in
+[`src/lib.rs`](../src/lib.rs) and the model modules.
 
-| Option | Type | Default | Description |
-| :----- | :--- | :------ | :---------- |
-| `--help` | flag | — | Show usage and exit. |
-| `--version` | flag | — | Print the version and exit. |
+The API is still evolving before a stable release.
 
----
+## Files and network
 
-## 2. Configuration
-
-| Key | Type | Default | Description |
-| :-- | :--- | :------ | :---------- |
-| <!-- TODO(template): every configuration key and environment variable read by the program. --> | | | |
-
-Precedence: command-line flags override environment variables, which override the configuration file,
-which overrides built-in defaults.
-
----
-
-## 3. Exit Codes
-
-| Code | Meaning |
-| :--- | :------ |
-| `0`  | Success. |
-| `1`  | Generic error. |
-| `2`  | Invalid usage or arguments. |
-| <!-- TODO(template): project-specific codes. --> | |
-
----
-
-## 4. Programmatic API
-
-<!-- TODO(template): the public, supported entry points. Anything not listed here is internal and may
-     change without a major version bump. -->
-
----
-
-## 5. Files & System Integration
-
-| Path | Purpose | Lifetime |
-| :--- | :------ | :------- |
-| <!-- TODO(template): every path the program reads, writes, or creates. --> | | |
-
----
-
-## 6. External Network Endpoints
-
-| Endpoint | Purpose | When contacted | Opt-out |
-| :------- | :------ | :------------- | :------ |
-| <!-- TODO(template): every host the program contacts. If none, state "none" explicitly — users
-     checking for telemetry look here first. --> | | | |
+The executable does not read or write application data files and does not contact
+network endpoints. Cargo may access its configured registry when building the
+project unless dependencies are already cached or `--offline` is used.

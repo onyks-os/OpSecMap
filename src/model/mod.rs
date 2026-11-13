@@ -3,13 +3,13 @@
 //!
 //! Domain model for OpSecMap.
 
-mod evalutation;
+mod evaluation;
 mod map;
 mod resource;
 mod route;
 mod scenario;
 
-pub use evalutation::{AccessEvidence, AccessOrigin, Evaluation, EvaluationError};
+pub use evaluation::{AccessEvidence, AccessOrigin, BlockedRoute, Evaluation, EvaluationError};
 pub use map::{DependencyMap, MapError};
 pub use resource::{create_resource, Resource, ResourceError, ResourceId};
 pub use route::{Route, RouteError, RouteId};

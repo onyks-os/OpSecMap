@@ -66,6 +66,12 @@ impl Scenario {
     pub fn excluded(&self) -> &[ResourceId] {
         &self.excluded
     }
+
+    /// Returns whether the scenario explicitly excludes `target`.
+    #[must_use]
+    pub fn is_excluded(&self, target: &ResourceId) -> bool {
+        self.excluded.contains(target)
+    }
 }
 
 /// Invalid assumptions found while constructing a scenario.

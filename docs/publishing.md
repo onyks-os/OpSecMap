@@ -1,5 +1,9 @@
 # Publishing to crates.io
 
+No OpSecMap crate has been published through this repository yet. The workflow
+below is preparation for a future first release and has not been validated by a
+published artifact.
+
 [`publish-crates.yml`](../.github/workflows/publish-crates.yml) runs on every `v*` tag that is not a
 pre-release. `cargo publish` cannot upload a prebuilt `.crate`: it packages the tree again. So the
 workflow first downloads the `.crate` from the GitHub Release, verifies its Sigstore signature,
@@ -12,7 +16,7 @@ then does it run `cargo publish`.
    Create an API token scoped to publish-new, store it as the `CARGO_REGISTRY_TOKEN` secret of an
    environment named `crates-io` (*Settings → Environments*), and push the first tag.
 2. **Trusted Publishing.** In the crate's settings on crates.io, add a trusted publisher: repository
-   `onyks-it/OpSecMap`, workflow `publish-crates.yml`, environment `crates-io`. Set the
+   `onyks-os/OpSecMap`, workflow `publish-crates.yml`, environment `crates-io`. Set the
    repository variable `CRATES_IO_TRUSTED_PUBLISHING` to `true`, then delete the secret and revoke
    the token.
 

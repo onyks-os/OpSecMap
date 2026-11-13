@@ -22,11 +22,13 @@ map is a subsequent presentation layer over the same domain model and evaluator.
 ### Implementation status
 
 The repository currently implements validated resource and route value objects,
-together with resource storage, lookup and renaming in the dependency map. Route
-storage, referential-integrity checks, evaluation, persistence and graphical
-presentation remain under development. Requirements in this document describe
-the intended complete behavior; they are not assertions about security controls
-that have not yet been implemented.
+resource and route storage with reference checks, scenario inputs, and an in-memory
+evaluator that follows routes to a fixed point and records missing prerequisites
+for unresolved routes. The CLI runs one hard-coded example and does not print
+blocked-route details. Loading personal maps, persistence, encrypted storage,
+documentation coverage, and graphical presentation remain under development.
+Requirements in this document describe the intended complete behavior; they are
+not assertions about security controls that have not yet been implemented.
 
 ## 2. Scope and assumptions
 
@@ -64,18 +66,18 @@ flowchart TD
     Evaluation --> Model
     Evaluation --> Results[Results and explanation evidence]
     Results --> CLI
-    CLI --> Persistence[Local persistence]
-    Persistence --> Validation
-    Persistence --> Files[Local files]
+    CLI -. planned .-> Persistence[Local persistence]
+    Persistence -. planned .-> Validation
+    Persistence -. planned .-> Files[Local files]
 ```
 
 | Component | Responsibility |
 | :--- | :--- |
-| Domain model | Resource identity, procedures, scenario inputs and documentation coverage |
+| Domain model | Resource identity, procedures and scenario inputs; documentation coverage is planned |
 | Validation | Referential integrity, structural constraints and scenario consistency |
 | Evaluator | Deterministic calculation of accessible resources and supporting evidence |
 | Presentation | User interaction, diagnostics and rendering of evaluation results |
-| Persistence | Versioned serialization, local file operations and encrypted storage |
+| Persistence (planned) | Versioned serialization, local file operations and encrypted storage |
 
 Domain validation and evaluation are independent of terminal I/O and filesystem
 operations. Presentation layers consume structured results rather than reimplement
@@ -122,11 +124,13 @@ all other authentication requirements.
 
 ### 4.3 Scenarios
 
-A scenario specifies:
+A scenario currently specifies:
 
 - resources explicitly available at the start of evaluation;
 - resources excluded from availability for the duration of the scenario;
-- the incident description and relevant assumptions.
+
+An incident description and other narrative assumptions are planned for a
+future input format; they are not fields of the current `Scenario` type.
 
 Loss of current account access is represented by absence from the initial set;
 the account may subsequently become accessible through a route. Irretrievable
@@ -139,9 +143,10 @@ must be represented explicitly when relevant to an analysis.
 
 ### 4.4 Documentation coverage
 
-For each target, the model records whether its routes are considered complete by
-the user or are incomplete/unknown. This is a statement about supplied information,
-not independent verification of provider policy.
+Documentation coverage is planned and is not stored by the current model. A
+future input may let the user mark a target's routes as complete or
+incomplete/unknown. Such a mark would describe supplied information, not
+independent verification of provider policy.
 
 Coverage is separate from accessibility. A known working route may establish
 access even when additional routes are undocumented. Failure to establish access
@@ -150,10 +155,9 @@ from an incomplete map cannot establish real-world impossibility of recovery.
 ### 4.5 Structural invariants
 
 A valid model has unique identifiers, existing route targets and prerequisites,
-and non-empty prerequisite sets. Duplicate prerequisites are rejected or
-normalized according to a documented input policy. Resource deletion must not
-leave dangling references; the initial interface rejects deletion while references
-remain. Renaming does not change identity.
+and non-empty prerequisite sets. Duplicate prerequisites are rejected. The
+current map has no resource deletion operation; any future deletion must preserve
+reference integrity. Renaming does not change identity.
 
 Cycles are valid model structures. They may represent circular recovery
 requirements and must not be rejected solely because they prevent topological
@@ -188,15 +192,18 @@ model their side effects.
 
 ### Explanation evidence
 
-Each derived resource records a witness route and prerequisite evidence from an
-earlier derivation round. This provides a finite explanation rooted in initial
-availability, including when the underlying dependency model contains cycles.
-Witness selection and report ordering are deterministic. Exhaustive enumeration
-and optimization of recovery plans are outside the initial contract.
+Each derived resource records the route chosen as its witness. The map provides
+that route's prerequisites, but the current evidence record does not duplicate
+their evidence or store derivation-round numbers. A route can only use access
+known before its expansion round, so witnesses are rooted in initial availability
+even when the map contains cycles. Witness selection and result ordering are
+deterministic. Exhaustive enumeration and optimization of recovery plans are
+outside the initial contract.
 
-For unsuccessful routes, results identify missing prerequisites. Coverage warnings
-include incomplete documentation on unresolved dependencies. The initial evaluator
-does not estimate hypothetical recovery paths or probabilities.
+For unsuccessful routes to unresolved, non-excluded targets, the evaluator records
+missing prerequisites. Coverage warnings about incomplete documentation are planned;
+they are not implemented yet. The initial evaluator does not estimate hypothetical
+recovery paths or probabilities.
 
 ## 6. Result contract
 
@@ -207,13 +214,14 @@ Evaluation separates positive evidence, unresolved access and information qualit
 | Initially available | Availability supplied by the scenario |
 | Derived access | A documented route has satisfied prerequisites, with witness evidence |
 | No working documented route | Access was not derived; unmet requirements are reported |
-| Coverage warning | Missing documentation or unsupported assumptions limit interpretation |
+| Coverage warning (planned) | Missing documentation or unsupported assumptions limit interpretation |
 
-An unresolved target with incomplete documentation is presented as indeterminate.
-Even with user-declared complete coverage, failure means no route works within the
+A future coverage feature would present an unresolved target with incomplete
+documentation as indeterminate. Today, failure means no route works within the
 supplied model; it is not a guarantee about undocumented provider behavior.
 
-Results include the scenario assumptions and distinguish them from derived facts.
+The caller retains the scenario assumptions; the evaluation records which access
+was initial and which was derived from a route.
 Interface complexity settings may change presentation detail, but not evaluation
 semantics. No output category represents an account as globally safe.
 
@@ -221,7 +229,8 @@ semantics. No output category represents an account as globally safe.
 
 ### Storage contract
 
-Persistence uses a versioned representation of resources, routes and map metadata.
+Planned persistence will use a versioned representation of resources, routes and
+map metadata.
 The file format and migration policy will be specified before persistence is
 released. Plaintext JSON is suitable for development fixtures and explicit export;
 normal storage of personal maps requires authenticated encryption.
@@ -259,9 +268,9 @@ and backup/recovery of the map itself are part of the storage design.
 
 Encryption at rest does not protect an unlocked map from a compromised host,
 screenshots or malicious application code. A web distribution would additionally
-require a policy for script delivery, dependencies and updates. The detailed
-security assessment is maintained in `docs/security-assessment.md`; its current
-template is not evidence of implemented controls.
+require a policy for script delivery, dependencies and updates. The
+[current security assessment](security-assessment.md) lists implemented controls
+separately from future storage requirements.
 
 ## 8. Verification requirements
 
@@ -275,7 +284,7 @@ Validation and evaluation tests cover these reference scenarios:
 | Same cycle with an independent route to A | A and subsequently B are derived |
 | Recovery material available only through the locked account | No independent recovery is derived |
 | One of two alternative routes is satisfied | Target access is derived |
-| No routes documented and coverage unknown | Unresolved access with an indeterminate interpretation |
+| No routes documented and coverage unknown (planned) | An eventual coverage report should mark the interpretation as indeterminate |
 
 Evaluator properties include determinism, termination on finite cyclic models,
 valid witness evidence and preservation of scenario exclusions. For a fixed model
@@ -298,7 +307,7 @@ accuracy of user-supplied recovery procedures.
 | Compromise | Separate future analysis of attacker capabilities and confidentiality consequences |
 | Common-cause failures | Shared prerequisites and multi-resource exclusions initially; explicit failure groups deferred |
 | Persistence | Exact schema, format identifiers, migrations and cryptographic envelope pending specification |
-| Resource representation | Identifier type and descriptive role vocabulary pending implementation |
+| Resource representation | Stable identifier implemented; descriptive role vocabulary remains open |
 
 A graphical interface must provide keyboard operation and a textual alternative,
 and must not communicate result meaning through color alone. New analyses must

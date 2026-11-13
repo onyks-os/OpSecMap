@@ -1,28 +1,8 @@
 # Reference: Dependencies
 
-Exhaustive inventory of runtime, development, and system dependencies.
+The crate's direct dependencies are declared in
+[`Cargo.toml`](https://github.com/onyks-os/OpSecMap/blob/main/Cargo.toml).
 
-This page mirrors
-[`DEPENDENCIES.md`](https://github.com/onyks-it/OpSecMap/blob/main/DEPENDENCIES.md),
-which is the authoritative source and also records the license and security justification of each
-entry.
-
----
-
-## 1. Runtime Dependencies
-
-| Package | Version | License | Purpose |
-| :------ | :------ | :------ | :------ |
-| <!-- TODO(template) --> | | | |
-
-## 2. Development Dependencies
-
-| Package | Version | Purpose |
-| :------ | :------ | :------ |
-| <!-- TODO(template) --> | | |
-
-## 3. System Dependencies
-
-| Binary | Minimum version | Purpose |
-| :----- | :-------------- | :------ |
-| <!-- TODO(template) --> | | |
+The Rust package currently has no runtime crate dependencies. It uses `proptest`
+as a development dependency for property tests. Building from source requires
+Rust 1.75 or newer and Cargo; see the [quickstart](../tutorials/quickstart.md).

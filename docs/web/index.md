@@ -1,34 +1,40 @@
-# OpSecMap (OpSecMap)
+# OpSecMap
 
-Local-first, zero-trust OpSec dependency mapper. Visualize accounts, devices, backups and recovery paths to find single points of failure before an incident.
+OpSecMap models the resources needed to access or recover an account. Its Rust
+model represents accounts, devices and recovery material as routes and evaluates
+what remains accessible in a loss scenario.
 
 [Quickstart Guide](tutorials/quickstart.md){ .md-button .md-button--primary }
 [Architecture](explanation/architecture.md){ .md-button }
-[GitHub Repository](https://github.com/onyks-it/OpSecMap){ .md-button }
+[GitHub Repository](https://github.com/onyks-os/OpSecMap){ .md-button }
 
 ---
 
-!!! warning "Notice"
-    <!-- TODO(template): the one caveat a new user must read before running this. Delete the
-         admonition if there genuinely is none. -->
+!!! warning "Early development"
+    The CLI currently runs only a fixed example. It cannot load your own map or
+    scenario, and it does not provide persistence, encryption, or a graphical view.
+    Keep passwords and recovery codes out of source files and examples.
 
 ---
 
-## Core Features
+## Implemented in the Rust model
 
 <div class="grid cards" markdown>
 
-- **<!-- TODO(template): feature -->**
+- **Resources and routes**
 
     ---
 
-    <!-- TODO(template): what it does and how it works, in two sentences. -->
+    A route requires all of its prerequisites. Several routes to one resource
+    represent alternatives.
 
-- **<!-- TODO(template): feature -->**
+- **Scenario evaluation**
 
     ---
 
-    <!-- TODO(template): description. -->
+    Starting from the resources declared available, the evaluator follows usable
+    routes until no new resources are found. It records missing prerequisites for
+    routes to unresolved targets. Excluded resources remain unavailable.
 
 </div>
 
@@ -49,7 +55,8 @@ This site follows the [Diátaxis](https://diataxis.fr/) framework:
 
 ## Project Status
 
-Current version: **v0.1.0** — see the [changelog](release-notes/changelog.md).
+Manifest version: **v0.1.0**; no GitHub release is published yet. The [roadmap](https://github.com/onyks-os/OpSecMap/blob/main/ROADMAP.md)
+tracks what remains before personal maps can be evaluated through the CLI.
 
 Security policy and vulnerability reporting:
-[SECURITY.md](https://github.com/onyks-it/OpSecMap/blob/main/SECURITY.md).
+[SECURITY.md](https://github.com/onyks-os/OpSecMap/blob/main/SECURITY.md).

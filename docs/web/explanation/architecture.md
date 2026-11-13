@@ -1,35 +1,47 @@
 # Explanation: System Architecture
 
-This page explains **why** OpSecMap is built the way it is. For the exhaustive internal
-reference, see [`docs/architecture.md`](https://github.com/onyks-it/OpSecMap/blob/main/docs/architecture.md)
-in the repository; for the decision history, see the
-[ADRs](https://github.com/onyks-it/OpSecMap/tree/main/docs/decisions).
+This page gives a short explanation of the current model. The
+[architecture document](https://github.com/onyks-os/OpSecMap/blob/main/docs/architecture.md)
+describes the intended system in more detail.
 
 ---
 
-## 1. System Layer Diagram
+## Resources, routes and scenarios
+
+A resource represents something a person may need access to, such as an account,
+device or recovery sheet. A route describes one way to reach a target resource.
+Every prerequisite in that route must already be accessible. Multiple routes to
+the same target are alternatives.
+
+A scenario identifies resources available at the start and resources excluded for
+the entire evaluation. An excluded resource cannot be recovered through a route.
+
+## Evaluation
 
 ```mermaid
-flowchart TD
-    User["User"] --> Interface["Interface layer"]
-    Interface --> Core["Core logic"]
-    Core --> Adapters["System adapters"]
-    Adapters --> External["External systems"]
+flowchart LR
+    P[Password source] --> L[Login route]
+    F[Phone] --> L
+    L --> E[Email account]
+    S[Recovery sheet] --> R[Recovery route]
+    R --> E
 ```
 
-<!-- TODO(template): explain the diagram in prose. A diagram without a narrative is decoration. -->
+The login route needs both the password source and phone. The recovery route can
+establish access through the sheet instead. The evaluator starts from available
+resources, applies usable routes, then repeats until no new resources can be
+reached. It records an initial or route-based reason for each accessible resource
+and missing prerequisites for routes to unresolved targets.
+Cycles do not create access on their own; a route into a cycle must first become
+usable from available resources.
 
-## 2. Design Principles
+## Current limits
 
-<!-- TODO(template): the constraints that shaped the design, and what each one rules out. -->
+The evaluator works on an in-memory Rust map. The CLI currently creates one fixed
+example, so there is no way to enter a personal map through the application. The
+model does not verify that an account provider will honor the documented recovery
+procedure. Local storage, encryption, a graphical view, documentation coverage
+and CLI output for blocked routes are planned work.
 
-## 3. Execution Flow
-
-<!-- TODO(template): the main flow, step by step, including failure handling. -->
-
-## 4. Trust Boundaries
-
-Summarized here; the full analysis lives in the
-[security assessment](https://github.com/onyks-it/OpSecMap/blob/main/docs/security-assessment.md).
-
-<!-- TODO(template) -->
+The model describes availability after a loss. It does not analyze credential
+compromise, data integrity or whether backups contain recoverable data.

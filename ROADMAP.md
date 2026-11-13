@@ -2,17 +2,22 @@
 
 This document describes the near-term product direction for OpSecMap. It is not a
 release-date commitment; proposed work beyond these milestones is tracked in
-[GitHub Issues](https://github.com/onyks-it/OpSecMap/issues).
+[GitHub Issues](https://github.com/onyks-os/OpSecMap/issues).
 
 ## Current capabilities
 
 - Validated resource and route identifiers.
 - Resource creation, insertion, lookup and renaming.
 - Route construction with a target and a non-empty set of unique prerequisites.
+- Route storage and reference checks against the resources in the map.
+- In-memory scenarios with initially available and excluded resources.
+- Evaluation of AND prerequisites, alternative routes, chains and cycles, with
+  initial or route-based evidence for accessible resources.
+- Blocked-route records with the missing prerequisites for unresolved targets.
 - Automated checks for the implemented domain invariants.
 
-The command-line interface currently demonstrates the domain model. OpSecMap is
-not yet ready for storing or evaluating real operational maps.
+The command-line interface currently runs a fixed example. It cannot load a
+personal map or scenario, and there is no persistence or encryption yet.
 
 ## Dependency graph
 
@@ -21,8 +26,6 @@ OpSec dependency map.
 
 | Item | Description |
 | :--- | :---------- |
-| Route storage | Store and query routes alongside resources. |
-| Referential integrity | Reject routes whose target or prerequisites are absent. |
 | Mutation rules | Prevent operations from leaving dangling references. |
 | Import validation | Apply the same invariants to data loaded from external representations. |
 
@@ -33,9 +36,7 @@ failure scenario.
 
 | Item | Description |
 | :--- | :---------- |
-| Scenario model | Represent initially available and explicitly excluded resources. |
-| Fixed-point evaluator | Resolve conjunctive prerequisites and alternative routes deterministically. |
-| Evidence | Report the routes supporting each derived result and unresolved prerequisites. |
+| Coverage | Distinguish a documented dead end from an incomplete or unknown map. |
 | CLI | Accept a map and scenario, then render structured diagnostics and results. |
 
 ## Later milestones
