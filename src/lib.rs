@@ -15,9 +15,9 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 mod model;
 
 pub use model::{
-    create_resource, AccessEvidence, AccessOrigin, BlockedRoute, DependencyMap, Evaluation,
-    EvaluationError, MapError, Resource, ResourceError, ResourceId, Route, RouteError, RouteId,
-    Scenario, ScenarioError,
+    create_resource, AccessEvidence, AccessOrigin, BlockedRoute, DependencyMap,
+    DocumentationCoverage, Evaluation, EvaluationError, MapError, Resource, ResourceError,
+    ResourceId, Route, RouteError, RouteId, Scenario, ScenarioError,
 };
 
 #[cfg(test)]

@@ -25,6 +25,8 @@ tagged or published release yet.
 - Route storage and reference checks in the dependency map.
 - In-memory scenarios and fixed-point access evaluation with origin evidence.
 - Blocked-route diagnostics with missing prerequisites for unresolved targets.
+- Per-resource documentation coverage (`Unknown`, `Incomplete`, `Complete`),
+  set through `DependencyMap::set_coverage` and snapshotted in each evaluation.
 - A source-only README with badges, example usage, and an AI-use disclosure.
 - Unit tests for resource, map and route invariants.
 - A project logo in the README.

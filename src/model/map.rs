@@ -5,6 +5,8 @@
 
 use std::fmt;
 
+use crate::model::resource::DocumentationCoverage;
+
 use super::{Resource, ResourceId, Route, RouteId};
 
 /// A validated dependency map containing resources and their relationships.
@@ -109,6 +111,26 @@ impl DependencyMap {
         for r in &mut self.resources {
             if *id == *r.id() {
                 r.set_label(label);
+                return Ok(());
+            }
+        }
+        Err(MapError::NotFound(id.clone()))
+    }
+
+    /// Sets the documentation coverage of the resource identified by `id`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MapError::NotFound`] when `id` is not present in the
+    /// DependencyMap. On error the map is unchanged.
+    pub fn set_coverage(
+        &mut self,
+        id: &ResourceId,
+        coverage: DocumentationCoverage,
+    ) -> Result<(), MapError> {
+        for r in &mut self.resources {
+            if *id == *r.id() {
+                r.set_coverage(coverage);
                 return Ok(());
             }
         }
@@ -620,6 +642,39 @@ mod tests {
 
         assert!(email_login.prerequisites().contains(&phone_id));
 
+        Ok(())
+    }
+
+    #[test]
+    fn set_coverage_changes_only_the_selected_resource() -> Result<(), ResourceError> {
+        let mut map = map_with_example_resources()?;
+
+        let result = map.set_coverage(&resource_id("email"), DocumentationCoverage::Complete);
+
+        assert_eq!(result, Ok(()));
+        for resource in map.resources() {
+            let expected = if resource.id().as_str() == "email" {
+                DocumentationCoverage::Complete
+            } else {
+                DocumentationCoverage::Unknown
+            };
+            assert_eq!(resource.coverage(), expected, "{}", resource.id().as_str());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn set_coverage_rejects_absent_id_without_changing_map() -> Result<(), ResourceError> {
+        let mut map = map_with_example_resources()?;
+
+        let result = map.set_coverage(&resource_id("missing"), DocumentationCoverage::Complete);
+
+        assert_eq!(result, Err(MapError::NotFound(resource_id("missing"))));
+        assert_eq!(map.resources().len(), 4);
+        assert!(map
+            .resources()
+            .iter()
+            .all(|resource| resource.coverage() == DocumentationCoverage::Unknown));
         Ok(())
     }
 }

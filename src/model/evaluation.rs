@@ -6,7 +6,7 @@
 use std::collections::HashSet;
 use std::fmt;
 
-use crate::{DependencyMap, ResourceId, RouteId, Scenario};
+use crate::{model::resource::DocumentationCoverage, DependencyMap, ResourceId, RouteId, Scenario};
 
 /// Why a resource is recorded as accessible in an evaluation.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -57,6 +57,8 @@ pub struct Evaluation {
     evidence: Vec<AccessEvidence>,
     /// Routes whose targets remain inaccessible and are not excluded.
     blocked: Vec<BlockedRoute>,
+    /// Snapshot of each map resource's coverage, in map order, taken during evaluation.
+    coverage: Vec<(ResourceId, DocumentationCoverage)>,
 }
 
 impl Evaluation {
@@ -94,10 +96,16 @@ impl Evaluation {
         let mut evaluation = Evaluation {
             evidence: v,
             blocked: Vec::new(),
+            coverage: Vec::new(),
         };
         evaluation.expand_to_fixed_point(map, scenario);
         let blocked = evaluation.collect_blocked_routes(map, scenario);
         evaluation.blocked = blocked;
+        let mut coverage = Vec::new();
+        for r in map.resources() {
+            coverage.push((r.id().clone(), r.coverage()));
+        }
+        evaluation.coverage = coverage;
 
         Ok(evaluation)
     }
@@ -210,6 +218,18 @@ impl Evaluation {
     fn accessible_ids(&self) -> HashSet<&ResourceId> {
         self.evidence.iter().map(AccessEvidence::resource).collect()
     }
+
+    /// Returns the coverage recorded for `id` when the evaluation ran.
+    ///
+    /// Returns `None` only when `id` was not in the evaluated map. The value is
+    /// a snapshot: later changes to the map do not affect it.
+    #[must_use]
+    pub fn coverage_for(&self, id: &ResourceId) -> Option<DocumentationCoverage> {
+        self.coverage
+            .iter()
+            .find(|i| &i.0 == id)
+            .map(|tuple| tuple.1)
+    }
 }
 
 /// References to resources absent from the dependency map.
@@ -288,7 +308,9 @@ impl BlockedRoute {
 #[allow(clippy::expect_used)]
 mod tests {
     use super::{AccessEvidence, AccessOrigin, Evaluation, EvaluationError};
-    use crate::model::{DependencyMap, Resource, ResourceId, Route, RouteId, Scenario};
+    use crate::model::{
+        DependencyMap, DocumentationCoverage, Resource, ResourceId, Route, RouteId, Scenario,
+    };
     use std::collections::HashSet;
 
     fn id(value: &str) -> ResourceId {
@@ -826,6 +848,84 @@ mod tests {
                 ("vault-from-key-and-phone", "vault", vec!["key", "phone"]),
                 ("archive-from-vault", "archive", vec!["vault"]),
             ]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn coverage_for_returns_coverage_set_before_evaluation() -> Result<(), &'static str> {
+        let mut map = map_with_resources();
+        map.set_coverage(&id("email"), DocumentationCoverage::Complete)
+            .map_err(|_| "coverage update failed")?;
+        let scenario = scenario(&[], &[])?;
+
+        let evaluation = Evaluation::evaluate(&map, &scenario).map_err(|_| "evaluation failed")?;
+
+        assert_eq!(
+            evaluation.coverage_for(&id("email")),
+            Some(DocumentationCoverage::Complete)
+        );
+        assert_eq!(
+            evaluation.coverage_for(&id("phone")),
+            Some(DocumentationCoverage::Unknown)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn coverage_for_returns_none_for_id_outside_the_map() -> Result<(), &'static str> {
+        let map = map_with_resources();
+        let scenario = scenario(&[], &[])?;
+
+        let evaluation = Evaluation::evaluate(&map, &scenario).map_err(|_| "evaluation failed")?;
+
+        assert_eq!(evaluation.coverage_for(&id("missing")), None);
+        Ok(())
+    }
+
+    #[test]
+    fn derived_access_stays_positive_with_incomplete_coverage() -> Result<(), &'static str> {
+        let mut map = map_with_resources();
+        add_route(
+            &mut map,
+            "email-login",
+            "email",
+            &["password-store", "phone"],
+        );
+        map.set_coverage(&id("email"), DocumentationCoverage::Incomplete)
+            .map_err(|_| "coverage update failed")?;
+        let scenario = scenario(&["password-store", "phone"], &[])?;
+
+        let evaluation = Evaluation::evaluate(&map, &scenario).map_err(|_| "evaluation failed")?;
+
+        assert!(evaluation.is_accessible(&id("email")));
+        assert_eq!(
+            evaluation
+                .evidence_for(&id("email"))
+                .map(AccessEvidence::origin),
+            Some(&AccessOrigin::Derived {
+                route: route_id("email-login")
+            })
+        );
+        assert_eq!(
+            evaluation.coverage_for(&id("email")),
+            Some(DocumentationCoverage::Incomplete)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn coverage_snapshot_ignores_map_changes_after_evaluation() -> Result<(), &'static str> {
+        let mut map = map_with_resources();
+        let scenario = scenario(&[], &[])?;
+        let evaluation = Evaluation::evaluate(&map, &scenario).map_err(|_| "evaluation failed")?;
+
+        map.set_coverage(&id("email"), DocumentationCoverage::Complete)
+            .map_err(|_| "coverage update failed")?;
+
+        assert_eq!(
+            evaluation.coverage_for(&id("email")),
+            Some(DocumentationCoverage::Unknown)
         );
         Ok(())
     }

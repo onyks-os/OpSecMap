@@ -50,6 +50,8 @@ pub struct Resource {
     label: String,
     /// Stable identity used by routes and lookups.
     id: ResourceId,
+    /// How completely the user has documented the routes to this resource.
+    coverage: DocumentationCoverage,
 }
 
 impl Resource {
@@ -63,7 +65,11 @@ impl Resource {
         if label.trim().is_empty() {
             return Err(ResourceError::EmptyLabel);
         }
-        Ok(Resource { label, id })
+        Ok(Resource {
+            label,
+            id,
+            coverage: DocumentationCoverage::Unknown,
+        })
     }
 
     /// Returns the resource's stable identifier.
@@ -78,9 +84,20 @@ impl Resource {
         &self.label
     }
 
+    /// Updates the documentation coverage within the model.
+    pub(super) fn set_coverage(&mut self, dc: DocumentationCoverage) {
+        self.coverage = dc;
+    }
+
     /// Updates a validated label within the model.
     pub(super) fn set_label(&mut self, label: String) {
         self.label = label;
+    }
+
+    /// Returns how completely the routes to this resource are documented.
+    #[must_use]
+    pub fn coverage(&self) -> DocumentationCoverage {
+        self.coverage
     }
 }
 
@@ -104,10 +121,24 @@ impl fmt::Display for ResourceError {
 
 impl std::error::Error for ResourceError {}
 
+/// The user's own statement about how completely a resource's routes are documented.
+///
+/// Coverage describes the map, not the real world: it never proves or disproves
+/// access, and `Complete` is not a check against the service provider's rules.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum DocumentationCoverage {
+    /// The user has not stated how complete the documented routes are.
+    Unknown,
+    /// The user knows that some routes or details are missing.
+    Incomplete,
+    /// The user states that every known route to this resource is documented.
+    Complete,
+}
+
 #[cfg(test)]
 #[allow(clippy::expect_used)]
 mod tests {
-    use super::{create_resource, Resource, ResourceError, ResourceId};
+    use super::{create_resource, DocumentationCoverage, Resource, ResourceError, ResourceId};
 
     #[test]
     fn resource_id_rejects_empty_and_whitespace_only_values() {
@@ -154,5 +185,13 @@ mod tests {
             .expect("both inputs are valid");
         assert_eq!(resource.id().as_str(), "phone");
         assert_eq!(resource.label(), "Phone");
+    }
+
+    #[test]
+    fn new_resource_has_unknown_coverage() {
+        let resource = create_resource("phone".to_string(), "Phone".to_string())
+            .expect("both inputs are valid");
+
+        assert_eq!(resource.coverage(), DocumentationCoverage::Unknown);
     }
 }
