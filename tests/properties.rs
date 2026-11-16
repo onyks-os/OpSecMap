@@ -22,6 +22,7 @@ proptest! {
             Err(opsecmap::ResourceError::InvalidId) => {
                 prop_assert!(value.trim().is_empty());
             }
+            Err(_) => prop_assert!(false, "unexpected resource ID error"),
         }
     }
 

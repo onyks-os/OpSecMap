@@ -7,8 +7,8 @@
 //! library crate so it stays testable without a terminal.
 
 use opsecmap::{
-    create_resource, AccessEvidence, AccessOrigin, DependencyMap, Evaluation, EvaluationError,
-    ResourceId, Route, RouteId, Scenario, VERSION,
+    create_resource, AccessEvidence, AccessOrigin, DependencyMap, Evaluation, ResourceId, Route,
+    RouteId, Scenario, VERSION,
 };
 use std::process::ExitCode;
 
@@ -19,12 +19,12 @@ fn insert(map: &mut DependencyMap, id: &str, label: &str) -> bool {
         Ok(resource) => match map.insert(resource) {
             Ok(()) => true,
             Err(e) => {
-                eprintln!("Cannot insert resource \"{id}\": {e:?}");
+                eprintln!("Cannot insert resource \"{id}\": {e}");
                 false
             }
         },
         Err(e) => {
-            eprintln!("Cannot create resource \"{id}\": {e:?}");
+            eprintln!("Cannot create resource \"{id}\": {e}");
             false
         }
     }
@@ -41,14 +41,14 @@ fn insert_route(
     let rid = match RouteId::new(route_id.to_string()) {
         Ok(id) => id,
         Err(e) => {
-            eprintln!("Cannot create RouteId \"{route_id}\": {e:?}");
+            eprintln!("Cannot create RouteId \"{route_id}\": {e}");
             return false;
         }
     };
     let tid = match ResourceId::new(target.to_string()) {
         Ok(id) => id,
         Err(e) => {
-            eprintln!("Cannot create ResourceId \"{target}\": {e:?}");
+            eprintln!("Cannot create ResourceId \"{target}\": {e}");
             return false;
         }
     };
@@ -57,7 +57,7 @@ fn insert_route(
         .filter_map(|p| match ResourceId::new((*p).to_string()) {
             Ok(id) => Some(id),
             Err(e) => {
-                eprintln!("Cannot create ResourceId \"{p}\": {e:?}");
+                eprintln!("Cannot create ResourceId \"{p}\": {e}");
                 None
             }
         })
@@ -69,12 +69,12 @@ fn insert_route(
         Ok(route) => match map.insert_route(route) {
             Ok(()) => true,
             Err(e) => {
-                eprintln!("Cannot insert route \"{route_id}\": {e:?}");
+                eprintln!("Cannot insert route \"{route_id}\": {e}");
                 false
             }
         },
         Err(e) => {
-            eprintln!("Cannot create route \"{route_id}\": {e:?}");
+            eprintln!("Cannot create route \"{route_id}\": {e}");
             false
         }
     }
@@ -99,18 +99,17 @@ fn print_scenario_access(
     email_id: &ResourceId,
 ) -> ExitCode {
     // Phone starts accessible and email is excluded.
-    let Ok(scenario) = Scenario::new(vec![phone_id], vec![email_id.clone()]) else {
-        eprintln!("Cannot create example scenario");
-        return ExitCode::FAILURE;
+    let scenario = match Scenario::new(vec![phone_id], vec![email_id.clone()]) {
+        Ok(scenario) => scenario,
+        Err(e) => {
+            eprintln!("Cannot create example scenario: {e}");
+            return ExitCode::FAILURE;
+        }
     };
     let evaluation = match Evaluation::evaluate(map, &scenario) {
         Ok(evaluation) => evaluation,
-        Err(EvaluationError::UnknownInitialResource(id)) => {
-            eprintln!("Unknown initial resource: {}", id.as_str());
-            return ExitCode::FAILURE;
-        }
-        Err(EvaluationError::UnknownExcludedResource(id)) => {
-            eprintln!("Unknown excluded resource: {}", id.as_str());
+        Err(e) => {
+            eprintln!("Cannot evaluate scenario: {e}");
             return ExitCode::FAILURE;
         }
     };
@@ -174,12 +173,12 @@ fn main() -> ExitCode {
     let phone_id = match ResourceId::new("phone".to_string()) {
         Ok(id) => id,
         Err(e) => {
-            eprintln!("Cannot create ResourceId: {e:?}");
+            eprintln!("Cannot create ResourceId: {e}");
             return ExitCode::FAILURE;
         }
     };
     if let Err(e) = map.rename(&phone_id, "Backup phone".to_string()) {
-        eprintln!("Cannot rename resource: {e:?}");
+        eprintln!("Cannot rename resource: {e}");
         return ExitCode::FAILURE;
     }
 
@@ -187,7 +186,7 @@ fn main() -> ExitCode {
     let email_login_id = match RouteId::new("email-login".to_string()) {
         Ok(id) => id,
         Err(e) => {
-            eprintln!("Cannot create RouteId: {e:?}");
+            eprintln!("Cannot create RouteId: {e}");
             return ExitCode::FAILURE;
         }
     };
@@ -224,7 +223,7 @@ fn main() -> ExitCode {
     let email_id = match ResourceId::new("email".to_string()) {
         Ok(id) => id,
         Err(e) => {
-            eprintln!("Cannot create ResourceId: {e:?}");
+            eprintln!("Cannot create ResourceId: {e}");
             return ExitCode::FAILURE;
         }
     };

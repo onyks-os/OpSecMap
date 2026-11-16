@@ -5,6 +5,7 @@
 
 use super::resource::ResourceId;
 use std::collections::HashSet;
+use std::fmt;
 
 /// Stable identifier for an access or recovery route.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,6 +36,7 @@ impl RouteId {
 ///
 /// Every prerequisite belongs to the same route and will therefore be required
 /// together. Separate routes with the same target represent alternatives.
+#[derive(Debug)]
 pub struct Route {
     /// Stable identity of this procedure.
     id: RouteId,
@@ -108,7 +110,7 @@ impl Route {
 }
 
 /// Errors produced while constructing route values.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RouteError {
     /// The route identifier is empty or contains only whitespace.
     InvalidId,
@@ -119,6 +121,19 @@ pub enum RouteError {
     /// The same resource identifier occurs more than once among the prerequisites.
     DuplicatePrerequisites,
 }
+
+impl fmt::Display for RouteError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidId => f.write_str("route ID is empty or blank"),
+            Self::EmptyLabel => f.write_str("route label is empty or blank"),
+            Self::EmptyPrerequisites => f.write_str("route has no prerequisites"),
+            Self::DuplicatePrerequisites => f.write_str("route repeats a prerequisite"),
+        }
+    }
+}
+
+impl std::error::Error for RouteError {}
 
 #[cfg(test)]
 #[allow(clippy::expect_used)]

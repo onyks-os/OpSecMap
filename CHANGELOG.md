@@ -31,6 +31,12 @@ tagged or published release yet.
 
 ### Changed
 
+- Public error types implement `Display` and `std::error::Error`, and the model
+  and evaluation types implement `Debug`. `ScenarioError` is now exported.
+- `MapError::DuplicateId`, `NotFound` and `DuplicateRouteId` carry the offending
+  ID; a blank resource label returns `ResourceError::EmptyLabel`.
+- `DependencyMap::empty` is renamed `is_empty`. `AccessEvidence` and
+  `BlockedRoute` can no longer be constructed outside the evaluator.
 - Public documentation now distinguishes the current example and Rust model from
   planned CLI input, persistence, encryption and graphical presentation.
 - Clarified current capabilities, release status, and limitations across the

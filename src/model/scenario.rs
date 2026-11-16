@@ -4,6 +4,7 @@
 //! Domain model for OpSecMap.
 
 use std::collections::HashSet;
+use std::fmt;
 
 use super::resource::ResourceId;
 
@@ -75,6 +76,7 @@ impl Scenario {
 }
 
 /// Invalid assumptions found while constructing a scenario.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ScenarioError {
     /// An ID occurs more than once among initially available resources.
     DuplicateInitial(ResourceId),
@@ -83,6 +85,34 @@ pub enum ScenarioError {
     /// The same resource is declared both available and excluded.
     InitialAndExcluded(ResourceId),
 }
+
+impl fmt::Display for ScenarioError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::DuplicateInitial(id) => {
+                write!(
+                    f,
+                    "resource \"{}\" is listed twice as initially available",
+                    id.as_str()
+                )
+            }
+            Self::DuplicateExcluded(id) => {
+                write!(
+                    f,
+                    "resource \"{}\" is listed twice as excluded",
+                    id.as_str()
+                )
+            }
+            Self::InitialAndExcluded(id) => write!(
+                f,
+                "resource \"{}\" is both initially available and excluded",
+                id.as_str()
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ScenarioError {}
 
 #[cfg(test)]
 #[allow(clippy::expect_used)]

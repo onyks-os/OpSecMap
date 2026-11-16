@@ -13,4 +13,4 @@ pub use evaluation::{AccessEvidence, AccessOrigin, BlockedRoute, Evaluation, Eva
 pub use map::{DependencyMap, MapError};
 pub use resource::{create_resource, Resource, ResourceError, ResourceId};
 pub use route::{Route, RouteError, RouteId};
-pub use scenario::Scenario;
+pub use scenario::{Scenario, ScenarioError};

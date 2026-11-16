@@ -17,7 +17,7 @@ mod model;
 pub use model::{
     create_resource, AccessEvidence, AccessOrigin, BlockedRoute, DependencyMap, Evaluation,
     EvaluationError, MapError, Resource, ResourceError, ResourceId, Route, RouteError, RouteId,
-    Scenario,
+    Scenario, ScenarioError,
 };
 
 #[cfg(test)]

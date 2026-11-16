@@ -3,12 +3,14 @@
 //!
 //! Domain model for OpSecMap.
 
+use std::fmt;
+
 /// Creates a resource from textual identifier and label values.
 ///
 /// # Errors
 ///
-/// Returns [`ResourceError::InvalidId`] when either input is empty or contains
-/// only whitespace.
+/// Returns [`ResourceError::InvalidId`] when `id` is empty or contains only
+/// whitespace, or [`ResourceError::EmptyLabel`] when `label` is.
 pub fn create_resource(id: String, label: String) -> Result<Resource, ResourceError> {
     let resource_id = ResourceId::new(id)?;
     Resource::new(resource_id, label)
@@ -42,6 +44,7 @@ impl ResourceId {
 }
 
 /// A resource that can participate in access or recovery routes.
+#[derive(Debug)]
 pub struct Resource {
     /// Human-readable name; it is not used as a reference key.
     label: String,
@@ -54,11 +57,11 @@ impl Resource {
     ///
     /// # Errors
     ///
-    /// Returns [`ResourceError::InvalidId`] when `label` is empty or contains
+    /// Returns [`ResourceError::EmptyLabel`] when `label` is empty or contains
     /// only whitespace.
     pub fn new(id: ResourceId, label: String) -> Result<Resource, ResourceError> {
         if label.trim().is_empty() {
-            return Err(ResourceError::InvalidId);
+            return Err(ResourceError::EmptyLabel);
         }
         Ok(Resource { label, id })
     }
@@ -82,11 +85,24 @@ impl Resource {
 }
 
 /// Errors produced while constructing resource values.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ResourceError {
-    /// An identifier or label is empty or contains only whitespace.
+    /// The identifier is empty or contains only whitespace.
     InvalidId,
+    /// The human-readable label is empty or contains only whitespace.
+    EmptyLabel,
 }
+
+impl fmt::Display for ResourceError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidId => f.write_str("resource ID is empty or blank"),
+            Self::EmptyLabel => f.write_str("resource label is empty or blank"),
+        }
+    }
+}
+
+impl std::error::Error for ResourceError {}
 
 #[cfg(test)]
 #[allow(clippy::expect_used)]
@@ -118,7 +134,7 @@ mod tests {
             let id = ResourceId::new("phone".to_string()).expect("valid ID");
             assert!(matches!(
                 Resource::new(id, label.to_string()),
-                Err(ResourceError::InvalidId)
+                Err(ResourceError::EmptyLabel)
             ));
         }
     }
@@ -131,7 +147,7 @@ mod tests {
         ));
         assert!(matches!(
             create_resource("phone".to_string(), " ".to_string()),
-            Err(ResourceError::InvalidId)
+            Err(ResourceError::EmptyLabel)
         ));
 
         let resource = create_resource("phone".to_string(), "Phone".to_string())

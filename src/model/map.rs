@@ -3,9 +3,12 @@
 //!
 //! Domain model for OpSecMap.
 
+use std::fmt;
+
 use super::{Resource, ResourceId, Route, RouteId};
 
 /// A validated dependency map containing resources and their relationships.
+#[derive(Debug)]
 pub struct DependencyMap {
     /// Resources currently registered in the map.
     resources: Vec<Resource>,
@@ -55,7 +58,7 @@ impl DependencyMap {
     /// uses the same identifier.
     pub fn insert(&mut self, resource: Resource) -> Result<(), MapError> {
         if self.find(resource.id()).is_some() {
-            return Err(MapError::DuplicateId);
+            return Err(MapError::DuplicateId(resource.id().clone()));
         }
         self.resources.push(resource);
         Ok(())
@@ -71,7 +74,7 @@ impl DependencyMap {
     /// prerequisite resource is not present in the map. On error the map is unchanged.
     pub fn insert_route(&mut self, route: Route) -> Result<(), MapError> {
         if self.find_route(route.id()).is_some() {
-            return Err(MapError::DuplicateRouteId);
+            return Err(MapError::DuplicateRouteId(route.id().clone()));
         }
         let target = route.target();
         if self.find(target).is_none() {
@@ -88,7 +91,7 @@ impl DependencyMap {
 
     /// Returns `true` when the map contains no resources.
     #[must_use]
-    pub fn empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.resources().is_empty()
     }
 
@@ -109,7 +112,7 @@ impl DependencyMap {
                 return Ok(());
             }
         }
-        Err(MapError::NotFound)
+        Err(MapError::NotFound(id.clone()))
     }
 }
 
@@ -120,21 +123,40 @@ impl Default for DependencyMap {
 }
 
 /// Errors produced by dependency-map operations.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MapError {
     /// Another resource already uses the requested identifier.
-    DuplicateId,
+    DuplicateId(ResourceId),
     /// The requested resource does not exist.
-    NotFound,
+    NotFound(ResourceId),
     /// A replacement label is empty or contains only whitespace.
     EmptyLabel,
     /// Another route already uses the requested identifier.
-    DuplicateRouteId,
+    DuplicateRouteId(RouteId),
     /// The target resource of a route does not exist in the map.
     UnknownRouteTarget(ResourceId),
     /// A prerequisite resource of a route does not exist in the map.
     UnknownRoutePrerequisite(ResourceId),
 }
+
+impl fmt::Display for MapError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::DuplicateId(id) => write!(f, "resource \"{}\" already exists", id.as_str()),
+            Self::NotFound(id) => write!(f, "resource \"{}\" does not exist", id.as_str()),
+            Self::EmptyLabel => f.write_str("resource label is empty or blank"),
+            Self::DuplicateRouteId(id) => write!(f, "route \"{}\" already exists", id.as_str()),
+            Self::UnknownRouteTarget(id) => {
+                write!(f, "route target \"{}\" does not exist", id.as_str())
+            }
+            Self::UnknownRoutePrerequisite(id) => {
+                write!(f, "route prerequisite \"{}\" does not exist", id.as_str())
+            }
+        }
+    }
+}
+
+impl std::error::Error for MapError {}
 
 #[cfg(test)]
 #[allow(clippy::expect_used)]
@@ -208,7 +230,7 @@ mod tests {
 
         let result = inventory.insert(duplicate);
 
-        assert!(matches!(result, Err(MapError::DuplicateId)));
+        assert!(matches!(result, Err(MapError::DuplicateId(id)) if id.as_str() == "phone"));
 
         assert_eq!(inventory.resources().len(), count_before_error);
 
@@ -250,17 +272,17 @@ mod tests {
         let map = DependencyMap::new();
         assert_eq!(map.resources().len(), 0);
         assert_eq!(map.routes().len(), 0);
-        assert!(map.empty());
+        assert!(map.is_empty());
     }
 
     #[test]
     fn default_map_is_empty_and_becomes_nonempty_after_insert() {
         let mut map = DependencyMap::default();
-        assert!(map.empty());
+        assert!(map.is_empty());
         let phone =
             Resource::new(resource_id("phone"), "Phone".to_string()).expect("valid resource");
         assert!(map.insert(phone).is_ok());
-        assert!(!map.empty());
+        assert!(!map.is_empty());
     }
 
     #[test]
@@ -291,7 +313,7 @@ mod tests {
 
         assert!(matches!(
             map.rename(&resource_id("missing"), "Updated".to_string()),
-            Err(MapError::NotFound)
+            Err(MapError::NotFound(id)) if id.as_str() == "missing"
         ));
         assert_eq!(map.resources().len(), 1);
         assert_eq!(
@@ -373,7 +395,9 @@ mod tests {
         let before = route_snapshot(&map);
 
         let result = map.insert_route(duplicate);
-        assert!(matches!(result, Err(MapError::DuplicateRouteId)));
+        assert!(
+            matches!(result, Err(MapError::DuplicateRouteId(id)) if id.as_str() == "email-login")
+        );
 
         assert_eq!(route_snapshot(&map), before);
 

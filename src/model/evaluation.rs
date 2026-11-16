@@ -4,11 +4,12 @@
 //! Domain model for OpSecMap.
 
 use std::collections::HashSet;
+use std::fmt;
 
 use crate::{DependencyMap, ResourceId, RouteId, Scenario};
 
 /// Why a resource is recorded as accessible in an evaluation.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccessOrigin {
     /// The scenario declares this resource available at the start.
     Initial,
@@ -20,7 +21,7 @@ pub enum AccessOrigin {
 }
 
 /// A resource together with the reason it became accessible.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccessEvidence {
     /// The accessible resource's stable identifier.
     resource: ResourceId,
@@ -30,8 +31,9 @@ pub struct AccessEvidence {
 
 impl AccessEvidence {
     /// Creates an evidence record for a resource and its access origin.
-    #[must_use]
-    pub fn new(resource: ResourceId, origin: AccessOrigin) -> Self {
+    ///
+    /// Private: only the evaluator may claim that a resource is accessible.
+    fn new(resource: ResourceId, origin: AccessOrigin) -> Self {
         Self { resource, origin }
     }
 
@@ -49,6 +51,7 @@ impl AccessEvidence {
 }
 
 /// The evidence collected for a single map and scenario evaluation.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Evaluation {
     /// One access record per accessible resource, once evaluation is complete.
     evidence: Vec<AccessEvidence>,
@@ -131,16 +134,23 @@ impl Evaluation {
     /// map order. Already accessible and excluded targets are omitted.
     /// This method does not modify the evaluation.
     fn expand_once(&self, map: &DependencyMap, scenario: &Scenario) -> Vec<AccessEvidence> {
-        let excluded = scenario.excluded();
+        let accessible_before = self.accessible_ids();
+        let excluded: HashSet<&ResourceId> = scenario.excluded().iter().collect();
         let mut new_evidence = Vec::new();
         let mut proposed = HashSet::new();
         for r in map.routes() {
             let target = r.target();
-            if self.is_accessible(target) || excluded.contains(target) || proposed.contains(target)
+            if accessible_before.contains(target)
+                || excluded.contains(target)
+                || proposed.contains(target)
             {
                 continue;
             }
-            if !r.prerequisites().iter().all(|id| self.is_accessible(id)) {
+            if !r
+                .prerequisites()
+                .iter()
+                .all(|id| accessible_before.contains(id))
+            {
                 continue;
             }
             new_evidence.push(AccessEvidence::new(
@@ -178,15 +188,16 @@ impl Evaluation {
         map: &DependencyMap,
         scenario: &Scenario,
     ) -> Vec<BlockedRoute> {
+        let accessible = self.accessible_ids();
         let mut blocked = Vec::new();
         for r in map.routes() {
             let target = r.target();
-            if self.is_accessible(target) || scenario.is_excluded(target) {
+            if accessible.contains(target) || scenario.is_excluded(target) {
                 continue;
             }
             let mut missing = Vec::new();
             for p in r.prerequisites() {
-                if !self.is_accessible(p) {
+                if !accessible.contains(p) {
                     missing.push(p.clone());
                 }
             }
@@ -194,9 +205,15 @@ impl Evaluation {
         }
         blocked
     }
+
+    /// Returns the IDs of the resources accessible so far, for membership checks.
+    fn accessible_ids(&self) -> HashSet<&ResourceId> {
+        self.evidence.iter().map(AccessEvidence::resource).collect()
+    }
 }
 
 /// References to resources absent from the dependency map.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EvaluationError {
     /// An initially available resource does not exist in the map.
     UnknownInitialResource(ResourceId),
@@ -204,7 +221,23 @@ pub enum EvaluationError {
     UnknownExcludedResource(ResourceId),
 }
 
+impl fmt::Display for EvaluationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::UnknownInitialResource(id) => {
+                write!(f, "initial resource \"{}\" is not in the map", id.as_str())
+            }
+            Self::UnknownExcludedResource(id) => {
+                write!(f, "excluded resource \"{}\" is not in the map", id.as_str())
+            }
+        }
+    }
+}
+
+impl std::error::Error for EvaluationError {}
+
 /// A route to an unresolved target and the prerequisites still unavailable.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlockedRoute {
     /// Stable identifier of the route that cannot currently establish access.
     route: RouteId,
@@ -217,8 +250,14 @@ pub struct BlockedRoute {
 /// Construction and read-only access to a blocked route's details.
 impl BlockedRoute {
     /// Creates a record for a route with its unresolved prerequisites.
-    #[must_use]
-    pub fn new(route: RouteId, target: ResourceId, missing: Vec<ResourceId>) -> Self {
+    ///
+    /// Private: only the evaluator may declare a route blocked. `missing` is
+    /// never empty, otherwise the route would have fired during expansion.
+    fn new(route: RouteId, target: ResourceId, missing: Vec<ResourceId>) -> Self {
+        debug_assert!(
+            !missing.is_empty(),
+            "a blocked route must miss at least one prerequisite"
+        );
         Self {
             route,
             target,
@@ -248,7 +287,7 @@ impl BlockedRoute {
 #[cfg(test)]
 #[allow(clippy::expect_used)]
 mod tests {
-    use super::{AccessOrigin, Evaluation, EvaluationError};
+    use super::{AccessEvidence, AccessOrigin, Evaluation, EvaluationError};
     use crate::model::{DependencyMap, Resource, ResourceId, Route, RouteId, Scenario};
     use std::collections::HashSet;
 
@@ -578,7 +617,7 @@ mod tests {
 
         let evaluation = Evaluation::evaluate(&map, &scenario).map_err(|_| "evaluation failed")?;
 
-        assert!(evaluation.evidence.is_empty());
+        assert_eq!(evaluation.evidence, Vec::<AccessEvidence>::new());
         assert!(!evaluation.is_accessible(&id("a")));
         assert!(!evaluation.is_accessible(&id("b")));
         Ok(())
@@ -618,7 +657,7 @@ mod tests {
 
         let evaluation = Evaluation::evaluate(&map, &scenario).map_err(|_| "evaluation failed")?;
 
-        assert!(evaluation.evidence.is_empty());
+        assert_eq!(evaluation.evidence, Vec::<AccessEvidence>::new());
         assert!(!evaluation.is_accessible(&id("a")));
         Ok(())
     }
