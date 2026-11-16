@@ -24,9 +24,10 @@ map is a subsequent presentation layer over the same domain model and evaluator.
 The repository currently implements validated resource and route value objects,
 resource and route storage with reference checks, scenario inputs, and an in-memory
 evaluator that follows routes to a fixed point and records missing prerequisites
-for unresolved routes. The CLI runs one hard-coded example and does not print
-blocked-route details. Loading personal maps, persistence, encrypted storage,
-documentation coverage, and graphical presentation remain under development.
+for unresolved routes, and per-resource documentation coverage. The CLI runs two
+hard-coded example scenarios and prints resource statuses and blocked routes.
+Loading personal maps, persistence, encrypted storage, and graphical presentation
+remain under development.
 Requirements in this document describe the intended complete behavior; they are
 not assertions about security controls that have not yet been implemented.
 
@@ -73,7 +74,7 @@ flowchart TD
 
 | Component | Responsibility |
 | :--- | :--- |
-| Domain model | Resource identity, procedures and scenario inputs; documentation coverage is planned |
+| Domain model | Resource identity, procedures, documentation coverage and scenario inputs |
 | Validation | Referential integrity, structural constraints and scenario consistency |
 | Evaluator | Deterministic calculation of accessible resources and supporting evidence |
 | Presentation | User interaction, diagnostics and rendering of evaluation results |
@@ -143,10 +144,10 @@ must be represented explicitly when relevant to an analysis.
 
 ### 4.4 Documentation coverage
 
-Documentation coverage is planned and is not stored by the current model. A
-future input may let the user mark a target's routes as complete or
-incomplete/unknown. Such a mark would describe supplied information, not
-independent verification of provider policy.
+Each resource carries a documentation coverage mark: `Unknown` (the default),
+`Incomplete` or `Complete`. The mark is the user's statement about the supplied
+routes, not independent verification of provider policy. An evaluation records
+the coverage of every resource as it was when the evaluation ran.
 
 Coverage is separate from accessibility. A known working route may establish
 access even when additional routes are undocumented. Failure to establish access
@@ -201,8 +202,9 @@ deterministic. Exhaustive enumeration and optimization of recovery plans are
 outside the initial contract.
 
 For unsuccessful routes to unresolved, non-excluded targets, the evaluator records
-missing prerequisites. Coverage warnings about incomplete documentation are planned;
-they are not implemented yet. The initial evaluator does not estimate hypothetical
+missing prerequisites. It also records each resource's documentation coverage,
+but does not combine it with access; interpretation belongs to presentation (see
+section 6). The initial evaluator does not estimate hypothetical
 recovery paths or probabilities.
 
 ## 6. Result contract
@@ -214,11 +216,15 @@ Evaluation separates positive evidence, unresolved access and information qualit
 | Initially available | Availability supplied by the scenario |
 | Derived access | A documented route has satisfied prerequisites, with witness evidence |
 | No working documented route | Access was not derived; unmet requirements are reported |
-| Coverage warning (planned) | Missing documentation or unsupported assumptions limit interpretation |
+| Documentation coverage | The user's statement of how completely the routes to a resource are documented |
 
-A future coverage feature would present an unresolved target with incomplete
-documentation as indeterminate. Today, failure means no route works within the
-supplied model; it is not a guarantee about undocumented provider behavior.
+Presentation combines access and coverage in this order: an excluded resource is
+reported as excluded; a resource with access evidence is accessible regardless of
+coverage; an unresolved resource with `Complete` coverage has no working
+documented route; an unresolved resource with `Unknown` or `Incomplete` coverage
+is indeterminate. Even with `Complete` coverage, failure means no route works
+within the supplied model; it is not a guarantee about undocumented provider
+behavior.
 
 The caller retains the scenario assumptions; the evaluation records which access
 was initial and which was derived from a route.
@@ -284,7 +290,7 @@ Validation and evaluation tests cover these reference scenarios:
 | Same cycle with an independent route to A | A and subsequently B are derived |
 | Recovery material available only through the locked account | No independent recovery is derived |
 | One of two alternative routes is satisfied | Target access is derived |
-| No routes documented and coverage unknown (planned) | An eventual coverage report should mark the interpretation as indeterminate |
+| No routes documented and coverage unknown | The result carries `Unknown` coverage, so presentation reports the resource as indeterminate |
 
 Evaluator properties include determinism, termination on finite cyclic models,
 valid witness evidence and preservation of scenario exclusions. For a fixed model

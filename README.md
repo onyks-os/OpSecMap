@@ -41,8 +41,9 @@ The result describes the routes in the map; it does not check whether a provider
 | Scenarios | Declares resources initially available and resources excluded throughout evaluation. |
 | Access evaluation | Follows AND prerequisites and alternative routes through chains, even when the map contains cycles. |
 | Explanations | Records whether access was initial or derived through a chosen route; for unresolved targets, lists each blocked route and its missing prerequisites. |
+| Documentation coverage | Lets you state whether a resource's routes are documented completely, so an unresolved result can be read as a documented dead end or as undetermined. |
 
-The CLI prints a sample map and the result of one hard-coded scenario. It does not accept a map file, scenario file, or interactive input.
+The CLI evaluates two hard-coded scenarios on a fictional map. It does not accept a map file, scenario file, or interactive input.
 
 ## Run the example
 
@@ -54,15 +55,26 @@ cd OpSecMap
 cargo run --
 ```
 
-The example creates four resources and two routes to `email`. It then starts with `phone` accessible and excludes `email`. Its output ends with:
+The example creates four resources and two routes to `email`, and declares the routes to `email` completely documented. It then evaluates two scenarios:
 
 ```text
-Scenario access:
-phone: initially accessible
-Email accessible: false
+Scenario: Phone lost
+email (Test email): accessible via email-recovery
+password-store (Test password manager): undetermined: documentation incomplete or not declared
+phone (Test phone): excluded by the scenario
+recovery-sheet (Test recovery sheet): available at start
+Blocked routes: none
+
+Scenario: Only password manager
+email (Test email): not accessible with the documented procedures
+password-store (Test password manager): available at start
+phone (Test phone): undetermined: documentation incomplete or not declared
+recovery-sheet (Test recovery sheet): undetermined: documentation incomplete or not declared
+email-login -> email: missing phone
+email-recovery -> email: missing recovery-sheet
 ```
 
-The exclusion keeps `email` inaccessible even though routes to it exist. `cargo run -- --version` prints the crate version. The [CLI reference](docs/web/reference/cli.md) describes the other current behavior.
+In the first scenario the lost phone blocks login, but the recovery sheet still reaches `email`. In the second, no documented route works; because coverage for `email` is `Complete`, that is a dead end within this map, while resources with unknown coverage stay undetermined. `cargo run -- --version` prints the crate version. The [CLI reference](docs/web/reference/cli.md) describes the other current behavior.
 
 ## How it works
 

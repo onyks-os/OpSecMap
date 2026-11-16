@@ -18,8 +18,12 @@ cargo run -- --version
 | No argument | Build and evaluate the fixed example, then print its summary. |
 
 Other arguments are currently ignored; there is no `--help` handler or input-file
-option yet. The demonstration prints four resources, two routes, and a scenario
-where `phone` is initially accessible and `email` is excluded.
+option yet. The demonstration builds four fictional resources and two routes to
+`email`, then evaluates two scenarios: `recovery-sheet` available with `phone`
+excluded, and only `password-store` available. For each scenario it prints every
+resource with its status (available at start, accessible via a route, excluded,
+not accessible with the documented procedures, or undetermined) and every blocked
+route with its missing prerequisites.
 
 ---
 

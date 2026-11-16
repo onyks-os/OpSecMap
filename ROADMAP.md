@@ -14,10 +14,12 @@ release-date commitment; proposed work beyond these milestones is tracked in
 - Evaluation of AND prerequisites, alternative routes, chains and cycles, with
   initial or route-based evidence for accessible resources.
 - Blocked-route records with the missing prerequisites for unresolved targets.
+- Per-resource documentation coverage, kept separate from accessibility.
 - Automated checks for the implemented domain invariants.
 
-The command-line interface currently runs a fixed example. It cannot load a
-personal map or scenario, and there is no persistence or encryption yet.
+The command-line interface currently evaluates two fixed example scenarios. It
+cannot load a personal map or scenario, and there is no persistence or encryption
+yet.
 
 ## Dependency graph
 
@@ -36,7 +38,6 @@ failure scenario.
 
 | Item | Description |
 | :--- | :---------- |
-| Coverage | Distinguish a documented dead end from an incomplete or unknown map. |
 | CLI | Accept a map and scenario, then render structured diagnostics and results. |
 
 ## Later milestones

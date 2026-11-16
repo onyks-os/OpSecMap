@@ -33,6 +33,9 @@ tagged or published release yet.
 
 ### Changed
 
+- The CLI demonstration evaluates two scenarios and prints each resource's
+  status, including documentation coverage, and every blocked route with its
+  missing prerequisites.
 - Public error types implement `Display` and `std::error::Error`, and the model
   and evaluation types implement `Debug`. `ScenarioError` is now exported.
 - `MapError::DuplicateId`, `NotFound` and `DuplicateRouteId` carry the offending

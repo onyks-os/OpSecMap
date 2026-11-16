@@ -40,8 +40,9 @@ usable from available resources.
 The evaluator works on an in-memory Rust map. The CLI currently creates one fixed
 example, so there is no way to enter a personal map through the application. The
 model does not verify that an account provider will honor the documented recovery
-procedure. Local storage, encryption, a graphical view, documentation coverage
-and CLI output for blocked routes are planned work.
+procedure. Documentation coverage is a statement you make about your own map;
+`Complete` does not prove that a provider offers no other recovery path. Local
+storage, encryption and a graphical view are planned work.
 
 The model describes availability after a loss. It does not analyze credential
 compromise, data integrity or whether backups contain recoverable data.

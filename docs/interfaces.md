@@ -12,8 +12,9 @@ today; see [the architecture document](architecture.md) for intended behavior.
 
 Run the fixed demonstration with `opsecmap` (or `cargo run --` from the repository).
 It constructs four sample resources and two routes to an email account, then
-evaluates a scenario where the phone is initially accessible and the email
-account is excluded. The command prints the routes and resulting access.
+evaluates two scenarios: a lost phone with the recovery sheet available, and only
+the password manager available. For each scenario it prints the status of every
+resource and the blocked routes with their missing prerequisites.
 
 `opsecmap --version` and `opsecmap -V` print `opsecmap 0.1.0` and exit.
 No other argument is currently parsed; unsupported arguments are ignored and the
@@ -32,7 +33,8 @@ evaluations. Callers construct a map and scenario in memory, then call
 `Evaluation::evaluate(&map, &scenario)`. The returned evaluation can answer
 whether a resource is accessible and give the initial or route-based evidence
 for an accessible resource. It also exposes blocked routes and their missing
-prerequisites for targets that remain inaccessible and are not excluded. See the
+prerequisites for targets that remain inaccessible and are not excluded, and
+the documentation coverage each resource had when the evaluation ran. See the
 public types and documentation in
 [`src/lib.rs`](../src/lib.rs) and the model modules.
 
