@@ -49,7 +49,7 @@ The CLI turns these into commands read from standard input. Nothing is saved or 
 
 ## Run the example
 
-You need Cargo and a Rust toolchain. `Cargo.toml` declares Rust 1.75 as the minimum version.
+You need Cargo and a Rust toolchain. `Cargo.toml` declares Rust 1.88 as the minimum version.
 
 ```sh
 git clone https://github.com/onyks-os/OpSecMap.git

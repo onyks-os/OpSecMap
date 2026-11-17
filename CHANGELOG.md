@@ -40,6 +40,9 @@ tagged or published release yet.
 
 ### Changed
 
+- The minimum supported Rust version is now 1.88, required by current
+  development dependencies. Cargo resolves dependency versions compatible with
+  it, and CI tests it explicitly.
 - Without arguments the CLI now reads commands from standard input; the
   demonstration moved to `--demo`. It evaluates two scenarios and prints each
   resource's status, including documentation coverage, and every blocked route

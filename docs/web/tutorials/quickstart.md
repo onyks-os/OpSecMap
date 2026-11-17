@@ -3,7 +3,7 @@
 This tutorial runs the demo built into the CLI, then describes a small map with
 commands. Use fictional data: the CLI does not save or encrypt anything.
 
-**You will need:** Rust 1.75 or newer with Cargo.
+**You will need:** Rust 1.88 or newer with Cargo.
 
 ---
 

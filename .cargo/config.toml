@@ -1,0 +1,4 @@
+# Resolve dependency versions that support the rust-version declared in
+# Cargo.toml, so `cargo update` cannot silently raise the MSRV.
+[resolver]
+incompatible-rust-versions = "fallback"

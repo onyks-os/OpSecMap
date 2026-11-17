@@ -5,4 +5,4 @@ The crate's direct dependencies are declared in
 
 The Rust package currently has no runtime crate dependencies. It uses `proptest`
 as a development dependency for property tests. Building from source requires
-Rust 1.75 or newer and Cargo; see the [quickstart](../tutorials/quickstart.md).
+Rust 1.88 or newer and Cargo; see the [quickstart](../tutorials/quickstart.md).

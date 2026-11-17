@@ -2,7 +2,7 @@
 name = "opsecmap"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.88"
 description = "In-memory Rust model and scenario evaluator for account access dependencies"
 authors = ["onyks"]
 license = "AGPL-3.0-or-later"

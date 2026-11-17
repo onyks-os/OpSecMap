@@ -7,7 +7,7 @@ welcome. Please use [SECURITY.md](SECURITY.md) for vulnerability reports.
 
 ## Get started
 
-You need Cargo and a Rust toolchain. `Cargo.toml` declares Rust 1.75 as the
+You need Cargo and a Rust toolchain. `Cargo.toml` declares Rust 1.88 as the
 minimum version.
 
 ```sh
