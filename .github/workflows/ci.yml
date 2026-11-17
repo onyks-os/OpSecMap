@@ -65,18 +65,24 @@ jobs:
   audit:
     name: Dependency audit
     runs-on: ubuntu-latest
-    # audit-check reports its findings as a check run, which needs write access
-    # to checks; everything else stays read-only.
-    permissions:
-      contents: read
-      checks: write
+    # cargo audit directly, rather than an action that publishes a check run:
+    # that needs write access, which Dependabot and fork pull requests do not
+    # get, so the job failed on them after a clean audit. Vulnerabilities fail
+    # the job; informational advisories (unmaintained, unsound) are printed.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: rustsec/audit-check@69366f33c96575abad1ee0dba8212993eecbe998 # v2.0.0
+      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          toolchain: stable
+      - name: Install cargo-audit
+        # The workflow's -D warnings is for this project's code, not for a tool.
+        env:
+          RUSTFLAGS: ""
+        run: cargo install cargo-audit --locked
+      - name: Audit Cargo.lock
+        run: cargo audit
 
   build:
     name: Release build

@@ -77,8 +77,13 @@ tagged or published release yet.
 - `make fuzz`, and the weekly fuzzing workflow, ran no tests: its name filter
   matched none. It now runs the property tests of the library and of the CLI
   parser, including new properties for arbitrary command lines.
-- The dependency audit job could not publish its result for lack of permission,
-  and dependency review rejected an invalid license identifier.
+- The dependency audit failed after a clean audit whenever it could not publish
+  a check run, as on Dependabot pull requests; it now runs `cargo audit`
+  directly. Dependency review rejected an invalid license identifier.
+- The DCO check failed on every Dependabot pull request; bot commits are now
+  exempt from sign-off.
+- The test-only dependency `rustix` is updated to 1.1.6, past the unsound
+  `RUSTSEC-2026-0486`.
 - The Flatpak package's sandbox check failed in CI, which cannot run
   `rofiles-fuse`.
 - The weekly release verification no longer fails while no release exists.
