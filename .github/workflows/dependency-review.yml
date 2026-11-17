@@ -12,8 +12,7 @@
 # reading the result in the job summary.
 #
 # If a PR comment is genuinely required, use a second workflow on `workflow_run`
-# that holds the write permission and never checks out untrusted code. See the
-# "Security Best Practices for GitHub Actions" section of CONTRIBUTING.md.
+# that holds the write permission and never checks out untrusted code.
 
 name: Dependency Review
 

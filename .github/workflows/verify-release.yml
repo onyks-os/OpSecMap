@@ -17,7 +17,7 @@ name: Verify release
 on:
   workflow_run:
     workflows: ["Release", "Package (deb)", "Package (rpm)", "Package (Arch)", "Package (Flatpak)",
-                "Publish (PyPI)", "Publish (npm)", "Publish (crates.io)"]
+                "Publish (crates.io)"]
     types: [completed]
   schedule:
     - cron: "41 5 * * 3"
@@ -76,7 +76,13 @@ jobs:
             workflow_dispatch) tag="$INPUT_TAG" ;;
           esac
           if [ -z "$tag" ]; then
-            tag="$(gh release view -R "$GITHUB_REPOSITORY" --json tagName --jq .tagName)"
+            tag="$(gh release view -R "$GITHUB_REPOSITORY" --json tagName --jq .tagName 2>/dev/null || true)"
+          fi
+          # Until the first release, the weekly run has nothing to verify.
+          if [ -z "$tag" ] && [ "$EVENT" = "schedule" ]; then
+            echo "::notice::No release has been published yet; nothing to verify."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           case "$tag" in
             v[0-9]*) ;;
@@ -86,6 +92,7 @@ jobs:
           echo "Verifying $tag"
 
       - name: Verify signatures, checksums and registries
+        if: steps.tag.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.tag.outputs.tag }}
