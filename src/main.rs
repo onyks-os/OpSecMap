@@ -3,242 +3,168 @@
 //!
 //! Command line entry point for OpSecMap.
 //!
-//! This binary parses arguments and formats output; the logic lives in the
-//! library crate so it stays testable without a terminal.
+//! This binary handles arguments, reads commands from standard input and prints
+//! their results. Parsing, execution and rendering live in the `cli` module; the
+//! model and evaluator live in the library crate.
 
-use opsecmap::{
-    create_resource, AccessOrigin, BlockedRoute, DependencyMap, DocumentationCoverage, Evaluation,
-    Resource, ResourceId, Route, RouteId, Scenario, VERSION,
-};
+mod cli;
+
+use std::io::{self, BufRead, IsTerminal, Write};
 use std::process::ExitCode;
 
-/// Example scenarios: title, initially available IDs and excluded IDs.
-const SCENARIOS: [(&str, &[&str], &[&str]); 2] = [
-    ("Phone lost", &["recovery-sheet"], &["phone"]),
-    ("Only password manager", &["password-store"], &[]),
+use cli::command::{self, Command};
+use cli::session::Session;
+use opsecmap::VERSION;
+
+/// Commands that build the fictional demo map.
+const DEMO_MAP: &[&str] = &[
+    "resource email Test email",
+    "resource password-store Test password manager",
+    "resource phone Test phone",
+    "resource recovery-sheet Test recovery sheet",
+    // Two routes toward the same target: AND inside each, OR across them.
+    "route email-login email password-store,phone Email login",
+    "route email-recovery email recovery-sheet Email recovery",
+    // Both known procedures for email are documented.
+    "coverage email complete",
 ];
 
-/// Validates raw strings as resource IDs, printing the first error.
-fn parse_ids(values: &[&str]) -> Option<Vec<ResourceId>> {
-    let mut ids = Vec::with_capacity(values.len());
-    for value in values {
-        match ResourceId::new((*value).to_string()) {
-            Ok(id) => ids.push(id),
-            Err(e) => {
-                eprintln!("Cannot create ResourceId \"{value}\": {e}");
-                return None;
-            }
-        }
-    }
-    Some(ids)
-}
+/// Demo scenarios: title and the `evaluate` command that runs them.
+const DEMO_SCENARIOS: &[(&str, &str)] = &[
+    ("Phone lost", "evaluate recovery-sheet phone"),
+    ("Only password manager", "evaluate password-store -"),
+];
 
-/// Inserts a resource built from raw strings, printing an error and returning
-/// `false` on failure.
-fn insert(map: &mut DependencyMap, id: &str, label: &str) -> bool {
-    match create_resource(id.to_string(), label.to_string()) {
-        Ok(resource) => match map.insert(resource) {
-            Ok(()) => true,
-            Err(e) => {
-                eprintln!("Cannot insert resource \"{id}\": {e}");
-                false
-            }
-        },
-        Err(e) => {
-            eprintln!("Cannot create resource \"{id}\": {e}");
-            false
-        }
-    }
-}
+const USAGE: &str = "\
+Usage: opsecmap [--demo | --help | --version]
 
-/// Inserts a route, printing an error and returning `false` on failure.
-fn insert_route(
-    map: &mut DependencyMap,
-    route_id: &str,
-    label: &str,
-    target: &str,
-    prereqs: &[&str],
-) -> bool {
-    let rid = match RouteId::new(route_id.to_string()) {
-        Ok(id) => id,
-        Err(e) => {
-            eprintln!("Cannot create RouteId \"{route_id}\": {e}");
-            return false;
-        }
-    };
-    let tid = match ResourceId::new(target.to_string()) {
-        Ok(id) => id,
-        Err(e) => {
-            eprintln!("Cannot create ResourceId \"{target}\": {e}");
-            return false;
-        }
-    };
-    let Some(pids) = parse_ids(prereqs) else {
-        return false;
-    };
-    match Route::new(rid, label.to_string(), tid, pids) {
-        Ok(route) => match map.insert_route(route) {
-            Ok(()) => true,
-            Err(e) => {
-                eprintln!("Cannot insert route \"{route_id}\": {e}");
-                false
-            }
-        },
-        Err(e) => {
-            eprintln!("Cannot create route \"{route_id}\": {e}");
-            false
-        }
-    }
-}
+Without arguments, opsecmap reads commands from standard input, one per line.
+Type \"help\" for the list of commands, or run: opsecmap < commands.txt
 
-/// Builds the fictional example map, printing an error on failure.
-fn example_map() -> Option<DependencyMap> {
-    let mut map = DependencyMap::new();
+  --demo         evaluate two scenarios on a fictional example map
+  -h, --help     print this message
+  -V, --version  print the version";
 
-    for (id, label) in [
-        ("email", "Test email"),
-        ("password-store", "Test password manager"),
-        ("phone", "Test phone"),
-        ("recovery-sheet", "Test recovery sheet"),
-    ] {
-        if !insert(&mut map, id, label) {
-            return None;
-        }
-    }
-
-    // Two routes toward the same target: AND inside each, OR across them.
-    if !insert_route(
-        &mut map,
-        "email-login",
-        "Email login",
-        "email",
-        &["password-store", "phone"],
-    ) || !insert_route(
-        &mut map,
-        "email-recovery",
-        "Email recovery",
-        "email",
-        &["recovery-sheet"],
-    ) {
-        return None;
-    }
-
-    // Both known procedures for email are documented.
-    let email_id = match ResourceId::new("email".to_string()) {
-        Ok(id) => id,
-        Err(e) => {
-            eprintln!("Cannot create ResourceId \"email\": {e}");
-            return None;
-        }
-    };
-    if let Err(e) = map.set_coverage(&email_id, DocumentationCoverage::Complete) {
-        eprintln!("Cannot set coverage: {e}");
-        return None;
-    }
-
-    Some(map)
-}
-
-/// Prints one resource with the access status recorded by the evaluation.
+/// Parses and executes one line, returning the lines to print.
 ///
-/// The order of the checks is the presentation rule: an exclusion is imposed
-/// by the scenario, proven access wins over coverage, and coverage only
-/// qualifies a resource without any access evidence.
-fn print_resource_status(resource: &Resource, evaluation: &Evaluation, scenario: &Scenario) {
-    let id = resource.id();
-    let status = if scenario.is_excluded(id) {
-        "excluded by the scenario".to_string()
-    } else if let Some(evidence) = evaluation.evidence_for(id) {
-        match evidence.origin() {
-            AccessOrigin::Initial => "available at start".to_string(),
-            AccessOrigin::Derived { route } => format!("accessible via {}", route.as_str()),
-        }
-    } else {
-        match evaluation.coverage_for(id) {
-            Some(DocumentationCoverage::Complete) => {
-                "not accessible with the documented procedures".to_string()
-            }
-            // None cannot occur for a resource taken from the evaluated map.
-            Some(DocumentationCoverage::Unknown | DocumentationCoverage::Incomplete) | None => {
-                "undetermined: documentation incomplete or not declared".to_string()
-            }
-        }
-    };
-    println!("{} ({}): {status}", id.as_str(), resource.label());
+/// Returns `Ok(None)` for `quit`, so the caller can stop reading.
+fn run_line(session: &mut Session, line: &str) -> Result<Option<Vec<String>>, String> {
+    match command::parse(line) {
+        Ok(None) => Ok(Some(Vec::new())),
+        Ok(Some(Command::Quit)) => Ok(None),
+        Ok(Some(command)) => session
+            .execute(command)
+            .map(Some)
+            .map_err(|e| e.to_string()),
+        Err(e) => Err(e.to_string()),
+    }
 }
 
-/// Prints a blocked route with the prerequisites it is missing.
-fn print_blocked_route(blocked: &BlockedRoute) {
-    let missing: Vec<&str> = blocked.missing().iter().map(ResourceId::as_str).collect();
-    println!(
-        "{} -> {}: missing {}",
-        blocked.route().as_str(),
-        blocked.target().as_str(),
-        missing.join(", ")
-    );
+/// Builds the demo map and evaluates each demo scenario.
+fn run_demo() -> ExitCode {
+    println!("OpSecMap v{VERSION} — fictional example map");
+
+    let mut session = Session::default();
+    for line in DEMO_MAP {
+        if let Err(e) = run_line(&mut session, line) {
+            eprintln!("error in demo map (\"{line}\"): {e}");
+            return ExitCode::FAILURE;
+        }
+    }
+
+    for (title, line) in DEMO_SCENARIOS {
+        println!();
+        println!("Scenario: {title}");
+        match run_line(&mut session, line) {
+            Ok(output) => {
+                for output_line in output.unwrap_or_default() {
+                    println!("{output_line}");
+                }
+            }
+            Err(e) => {
+                eprintln!("error in demo scenario \"{title}\": {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+    }
+    ExitCode::SUCCESS
 }
 
-/// Evaluates one scenario on `map` and prints every resource and blocked route.
+/// Reads commands from standard input until `quit` or the end of input.
 ///
-/// Returns `false` and prints an error when the scenario is invalid.
-fn print_scenario_access(
-    map: &DependencyMap,
-    title: &str,
-    initial: Vec<ResourceId>,
-    excluded: Vec<ResourceId>,
-) -> bool {
-    let scenario = match Scenario::new(initial, excluded) {
-        Ok(scenario) => scenario,
-        Err(e) => {
-            eprintln!("Cannot create scenario \"{title}\": {e}");
-            return false;
-        }
-    };
-    let evaluation = match Evaluation::evaluate(map, &scenario) {
-        Ok(evaluation) => evaluation,
-        Err(e) => {
-            eprintln!("Cannot evaluate scenario \"{title}\": {e}");
-            return false;
-        }
-    };
+/// A failed command is reported on stderr with its line number and the next
+/// line is read. The exit code is a failure if any command failed.
+fn run_session() -> ExitCode {
+    let stdin = io::stdin();
+    let interactive = stdin.is_terminal();
+    if interactive {
+        println!("OpSecMap v{VERSION}. Type \"help\" for the list of commands, \"quit\" to exit.");
+    }
 
-    println!("Scenario: {title}");
-    for resource in map.resources() {
-        print_resource_status(resource, &evaluation, &scenario);
-    }
-    if evaluation.blocked_routes().is_empty() {
-        println!("Blocked routes: none");
-    } else {
-        for blocked in evaluation.blocked_routes() {
-            print_blocked_route(blocked);
+    let mut session = Session::default();
+    let mut input = stdin.lock();
+    let mut line = String::new();
+    let mut line_number = 0_usize;
+    let mut failures = 0_usize;
+    loop {
+        if interactive {
+            print!("> ");
+            // A failed flush only delays the prompt; reading still works.
+            let _ = io::stdout().flush();
+        }
+        line.clear();
+        match input.read_line(&mut line) {
+            Ok(0) => break,
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("error: cannot read input: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+        line_number += 1;
+
+        match run_line(&mut session, &line) {
+            Ok(Some(output)) => {
+                for output_line in output {
+                    println!("{output_line}");
+                }
+            }
+            Ok(None) => break,
+            Err(e) => {
+                eprintln!("error (line {line_number}): {e}");
+                failures += 1;
+            }
         }
     }
-    true
+
+    if failures == 0 {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::FAILURE
+    }
 }
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
-
-    if args.iter().any(|a| a == "--version" || a == "-V") {
-        println!("opsecmap {VERSION}");
-        return ExitCode::SUCCESS;
-    }
-
-    println!("OpSecMap v{VERSION} — fictional example map");
-
-    let Some(map) = example_map() else {
-        return ExitCode::FAILURE;
-    };
-
-    for (title, initial, excluded) in SCENARIOS {
-        let (Some(initial), Some(excluded)) = (parse_ids(initial), parse_ids(excluded)) else {
-            return ExitCode::FAILURE;
-        };
-        println!();
-        if !print_scenario_access(&map, title, initial, excluded) {
-            return ExitCode::FAILURE;
+    match args
+        .iter()
+        .map(String::as_str)
+        .collect::<Vec<_>>()
+        .as_slice()
+    {
+        [] => run_session(),
+        ["--demo"] => run_demo(),
+        ["--version" | "-V"] => {
+            println!("opsecmap {VERSION}");
+            ExitCode::SUCCESS
+        }
+        ["--help" | "-h"] => {
+            println!("{USAGE}");
+            ExitCode::SUCCESS
+        }
+        _ => {
+            eprintln!("{USAGE}");
+            ExitCode::from(2)
         }
     }
-
-    ExitCode::SUCCESS
 }

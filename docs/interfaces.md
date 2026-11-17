@@ -10,21 +10,21 @@ today; see [the architecture document](architecture.md) for intended behavior.
 
 ## Command line
 
-Run the fixed demonstration with `opsecmap` (or `cargo run --` from the repository).
-It constructs four sample resources and two routes to an email account, then
-evaluates two scenarios: a lost phone with the recovery sheet available, and only
-the password manager available. For each scenario it prints the status of every
-resource and the blocked routes with their missing prerequisites.
+Without arguments, `opsecmap` reads commands from standard input, one per line,
+interactively or from a redirected file. Commands add resources and routes, set
+documentation coverage, evaluate scenarios, remove elements and list the map as
+commands. The map lives in memory only. The
+[CLI reference](web/reference/cli.md) documents every command and output line.
 
-`opsecmap --version` and `opsecmap -V` print `opsecmap 0.1.0` and exit.
-No other argument is currently parsed; unsupported arguments are ignored and the
-demonstration still runs. There is no `--help` handler, configuration file, map
-input, scenario input, or output format flag.
+`opsecmap --demo` evaluates two scenarios on a fictional map. `--help`/`-h` and
+`--version`/`-V` print usage or the version. There is no configuration file or
+output format flag.
 
 | Exit code | Meaning |
 | :-------- | :------ |
-| `0` | Version printed or demonstration completed. |
-| `1` | The built-in example could not be constructed or evaluated. |
+| `0` | Every command succeeded, or a flag completed. |
+| `1` | A command failed, input could not be read, or the demo failed. |
+| `2` | Unknown argument. |
 
 ## Rust library
 
@@ -34,7 +34,9 @@ evaluations. Callers construct a map and scenario in memory, then call
 whether a resource is accessible and give the initial or route-based evidence
 for an accessible resource. It also exposes blocked routes and their missing
 prerequisites for targets that remain inaccessible and are not excluded, and
-the documentation coverage each resource had when the evaluation ran. See the
+the documentation coverage each resource had when the evaluation ran. The map
+can remove routes and resources, refusing to remove a resource that a route
+still uses. See the
 public types and documentation in
 [`src/lib.rs`](../src/lib.rs) and the model modules.
 

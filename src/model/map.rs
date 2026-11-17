@@ -117,6 +117,56 @@ impl DependencyMap {
         Err(MapError::NotFound(id.clone()))
     }
 
+    /// Removes the route identified by `id` and returns it.
+    ///
+    /// No resource depends on a route, so removing one never leaves a dangling
+    /// reference.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MapError::RouteNotFound`] when `id` is not present in the
+    /// DependencyMap. On error the map is unchanged.
+    pub fn remove_route(&mut self, id: &RouteId) -> Result<Route, MapError> {
+        let Some(position) = self.routes.iter().position(|route| route.id() == id) else {
+            return Err(MapError::RouteNotFound(id.clone()));
+        };
+        Ok(self.routes.remove(position))
+    }
+
+    /// Removes the resource identified by `id` and returns it.
+    ///
+    /// A resource that any route uses, as target or prerequisite, is not
+    /// removed: the route would refer to a resource that no longer exists.
+    /// Remove those routes first.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MapError::NotFound`] when `id` is not present in the
+    /// DependencyMap, or [`MapError::ResourceInUse`] listing every route that
+    /// uses the resource, in map order. On error the map is unchanged.
+    pub fn remove_resource(&mut self, id: &ResourceId) -> Result<Resource, MapError> {
+        let Some(position) = self
+            .resources
+            .iter()
+            .position(|resource| resource.id() == id)
+        else {
+            return Err(MapError::NotFound(id.clone()));
+        };
+        let routes: Vec<RouteId> = self
+            .routes
+            .iter()
+            .filter(|route| route.target() == id || route.prerequisites().contains(id))
+            .map(|route| route.id().clone())
+            .collect();
+        if !routes.is_empty() {
+            return Err(MapError::ResourceInUse {
+                resource: id.clone(),
+                routes,
+            });
+        }
+        Ok(self.resources.remove(position))
+    }
+
     /// Sets the documentation coverage of the resource identified by `id`.
     ///
     /// # Errors
@@ -159,6 +209,15 @@ pub enum MapError {
     UnknownRouteTarget(ResourceId),
     /// A prerequisite resource of a route does not exist in the map.
     UnknownRoutePrerequisite(ResourceId),
+    /// The requested route does not exist.
+    RouteNotFound(RouteId),
+    /// The resource cannot be removed because routes still use it.
+    ResourceInUse {
+        /// The resource that was not removed.
+        resource: ResourceId,
+        /// Every route that uses it as target or prerequisite, in map order.
+        routes: Vec<RouteId>,
+    },
 }
 
 impl fmt::Display for MapError {
@@ -173,6 +232,16 @@ impl fmt::Display for MapError {
             }
             Self::UnknownRoutePrerequisite(id) => {
                 write!(f, "route prerequisite \"{}\" does not exist", id.as_str())
+            }
+            Self::RouteNotFound(id) => write!(f, "route \"{}\" does not exist", id.as_str()),
+            Self::ResourceInUse { resource, routes } => {
+                let routes: Vec<&str> = routes.iter().map(RouteId::as_str).collect();
+                write!(
+                    f,
+                    "resource \"{}\" is used by routes: {}",
+                    resource.as_str(),
+                    routes.join(", ")
+                )
             }
         }
     }
@@ -676,5 +745,106 @@ mod tests {
             .iter()
             .all(|resource| resource.coverage() == DocumentationCoverage::Unknown));
         Ok(())
+    }
+
+    fn resource_ids(map: &DependencyMap) -> Vec<&str> {
+        map.resources().iter().map(|r| r.id().as_str()).collect()
+    }
+
+    fn example_map_with_routes() -> Result<DependencyMap, RouteError> {
+        let mut map = map_with_example_resources().map_err(|_| RouteError::InvalidId)?;
+        for (id, target, prerequisites) in [
+            ("email-login", "email", vec!["password-store", "phone"]),
+            ("phone-reset", "phone", vec!["email"]),
+        ] {
+            let route = Route::new(
+                route_id(id),
+                id.to_string(),
+                resource_id(target),
+                prerequisites.into_iter().map(resource_id).collect(),
+            )?;
+            assert!(
+                map.insert_route(route).is_ok(),
+                "test fixture must be valid"
+            );
+        }
+        Ok(map)
+    }
+
+    #[test]
+    fn remove_route_returns_it_and_keeps_the_others() -> Result<(), RouteError> {
+        let mut map = example_map_with_routes()?;
+
+        let removed = map.remove_route(&route_id("email-login"));
+
+        assert_eq!(
+            removed.map(|route| route.id().as_str().to_string()),
+            Ok("email-login".to_string())
+        );
+        assert_eq!(route_snapshot(&map).len(), 1);
+        assert!(map.find_route(&route_id("phone-reset")).is_some());
+        Ok(())
+    }
+
+    #[test]
+    fn remove_route_rejects_absent_id_without_changing_map() -> Result<(), RouteError> {
+        let mut map = example_map_with_routes()?;
+        let before = route_snapshot(&map);
+
+        let result = map.remove_route(&route_id("missing"));
+
+        assert!(matches!(result, Err(MapError::RouteNotFound(id)) if id.as_str() == "missing"));
+        assert_eq!(route_snapshot(&map), before);
+        Ok(())
+    }
+
+    #[test]
+    fn remove_resource_in_use_lists_every_route_and_changes_nothing() -> Result<(), RouteError> {
+        let mut map = example_map_with_routes()?;
+        let routes_before = route_snapshot(&map);
+
+        // `phone` is a prerequisite of email-login and the target of phone-reset.
+        let result = map.remove_resource(&resource_id("phone"));
+
+        assert!(matches!(
+            result,
+            Err(MapError::ResourceInUse { resource, routes })
+                if resource.as_str() == "phone"
+                    && routes == [route_id("email-login"), route_id("phone-reset")]
+        ));
+        assert_eq!(
+            resource_ids(&map),
+            ["email", "password-store", "phone", "recovery-sheet"]
+        );
+        assert_eq!(route_snapshot(&map), routes_before);
+        Ok(())
+    }
+
+    #[test]
+    fn remove_resource_succeeds_once_its_routes_are_gone() -> Result<(), RouteError> {
+        let mut map = example_map_with_routes()?;
+        assert!(map.remove_route(&route_id("email-login")).is_ok());
+        assert!(map.remove_route(&route_id("phone-reset")).is_ok());
+
+        let removed = map.remove_resource(&resource_id("phone"));
+
+        assert_eq!(
+            removed.map(|resource| resource.label().to_string()),
+            Ok("Test phone".to_string())
+        );
+        assert_eq!(
+            resource_ids(&map),
+            ["email", "password-store", "recovery-sheet"]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn remove_resource_rejects_absent_id() {
+        let mut map = DependencyMap::new();
+
+        let result = map.remove_resource(&resource_id("missing"));
+
+        assert!(matches!(result, Err(MapError::NotFound(id)) if id.as_str() == "missing"));
     }
 }

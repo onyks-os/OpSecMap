@@ -29,7 +29,7 @@ If your phone disappears, can you still sign in to your email account? OpSecMap 
 
 ## Project status
 
-OpSecMap is at an early, **source-only** stage. The crate's version is `0.1.0`, and the command-line program runs one fixed demonstration. It cannot load a personal map or scenario. There is no persistence, encryption, graphical view, or downloadable release yet. The [roadmap](ROADMAP.md) tracks those steps.
+OpSecMap is at an early, **source-only** stage. The crate's version is `0.1.0`, and the command-line program reads a map and scenarios as commands, interactively or from a file, and keeps them in memory only. There is no persistence, encryption, graphical view, or downloadable release yet. The [roadmap](ROADMAP.md) tracks those steps.
 
 The result describes the routes in the map; it does not check whether a provider will accept a real recovery procedure. Do not place passwords, recovery codes, or other secrets in source files or examples.
 
@@ -43,7 +43,9 @@ The result describes the routes in the map; it does not check whether a provider
 | Explanations | Records whether access was initial or derived through a chosen route; for unresolved targets, lists each blocked route and its missing prerequisites. |
 | Documentation coverage | Lets you state whether a resource's routes are documented completely, so an unresolved result can be read as a documented dead end or as undetermined. |
 
-The CLI evaluates two hard-coded scenarios on a fictional map. It does not accept a map file, scenario file, or interactive input.
+| Safe removal | Removes routes and resources, refusing to remove a resource that a route still uses. |
+
+The CLI turns these into commands read from standard input. Nothing is saved or encrypted, so use fictional data only.
 
 ## Run the example
 
@@ -52,13 +54,14 @@ You need Cargo and a Rust toolchain. `Cargo.toml` declares Rust 1.75 as the mini
 ```sh
 git clone https://github.com/onyks-os/OpSecMap.git
 cd OpSecMap
-cargo run --
+cargo run -- --demo
 ```
 
-The example creates four resources and two routes to `email`, and declares the routes to `email` completely documented. It then evaluates two scenarios:
+The demo creates four resources and two routes to `email`, and declares the routes to `email` completely documented. It then evaluates two scenarios:
 
 ```text
 Scenario: Phone lost
+Initial: recovery-sheet; excluded: phone
 email (Test email): accessible via email-recovery
 password-store (Test password manager): undetermined: documentation incomplete or not declared
 phone (Test phone): excluded by the scenario
@@ -66,6 +69,7 @@ recovery-sheet (Test recovery sheet): available at start
 Blocked routes: none
 
 Scenario: Only password manager
+Initial: password-store; excluded: none
 email (Test email): not accessible with the documented procedures
 password-store (Test password manager): available at start
 phone (Test phone): undetermined: documentation incomplete or not declared
@@ -74,7 +78,24 @@ email-login -> email: missing phone
 email-recovery -> email: missing recovery-sheet
 ```
 
-In the first scenario the lost phone blocks login, but the recovery sheet still reaches `email`. In the second, no documented route works; because coverage for `email` is `Complete`, that is a dead end within this map, while resources with unknown coverage stay undetermined. `cargo run -- --version` prints the crate version. The [CLI reference](docs/web/reference/cli.md) describes the other current behavior.
+In the first scenario the lost phone blocks login, but the recovery sheet still reaches `email`. In the second, no documented route works; because coverage for `email` is `Complete`, that is a dead end within this map, while resources with unknown coverage stay undetermined. `cargo run -- --version` prints the crate version.
+
+## Describe your own map
+
+Without arguments, `opsecmap` reads commands from standard input. The same demo map, written as commands:
+
+```text
+resource email Test email
+resource password-store Test password manager
+resource phone Test phone
+resource recovery-sheet Test recovery sheet
+route email-login email password-store,phone Email login
+route email-recovery email recovery-sheet Email recovery
+coverage email complete
+evaluate recovery-sheet phone
+```
+
+Type them after `cargo run`, or save them in a file and run `cargo run < commands.txt`; [`tests/fixtures/phone-lost.txt`](tests/fixtures/phone-lost.txt) is a complete example. `list` prints the current map as commands you can run again. The [CLI reference](docs/web/reference/cli.md) lists every command, status and exit code.
 
 ## How it works
 

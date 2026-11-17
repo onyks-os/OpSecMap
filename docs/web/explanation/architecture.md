@@ -37,8 +37,8 @@ usable from available resources.
 
 ## Current limits
 
-The evaluator works on an in-memory Rust map. The CLI currently creates one fixed
-example, so there is no way to enter a personal map through the application. The
+The evaluator works on an in-memory Rust map. The CLI builds that map from
+commands and forgets it when it exits; nothing is saved or encrypted. The
 model does not verify that an account provider will honor the documented recovery
 procedure. Documentation coverage is a statement you make about your own map;
 `Complete` does not prove that a provider offers no other recovery path. Local

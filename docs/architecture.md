@@ -24,10 +24,10 @@ map is a subsequent presentation layer over the same domain model and evaluator.
 The repository currently implements validated resource and route value objects,
 resource and route storage with reference checks, scenario inputs, and an in-memory
 evaluator that follows routes to a fixed point and records missing prerequisites
-for unresolved routes, and per-resource documentation coverage. The CLI runs two
-hard-coded example scenarios and prints resource statuses and blocked routes.
-Loading personal maps, persistence, encrypted storage, and graphical presentation
-remain under development.
+for unresolved routes, and per-resource documentation coverage. The CLI builds a
+map from commands read on standard input, evaluates scenarios and prints resource
+statuses and blocked routes; the map is kept in memory only. Persistence,
+encrypted storage, and graphical presentation remain under development.
 Requirements in this document describe the intended complete behavior; they are
 not assertions about security controls that have not yet been implemented.
 
@@ -156,9 +156,9 @@ from an incomplete map cannot establish real-world impossibility of recovery.
 ### 4.5 Structural invariants
 
 A valid model has unique identifiers, existing route targets and prerequisites,
-and non-empty prerequisite sets. Duplicate prerequisites are rejected. The
-current map has no resource deletion operation; any future deletion must preserve
-reference integrity. Renaming does not change identity.
+and non-empty prerequisite sets. Duplicate prerequisites are rejected. A
+resource is removed only when no route uses it as target or prerequisite; removing
+a route never breaks a reference. Renaming does not change identity.
 
 Cycles are valid model structures. They may represent circular recovery
 requirements and must not be rejected solely because they prevent topological

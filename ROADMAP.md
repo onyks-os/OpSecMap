@@ -15,11 +15,12 @@ release-date commitment; proposed work beyond these milestones is tracked in
   initial or route-based evidence for accessible resources.
 - Blocked-route records with the missing prerequisites for unresolved targets.
 - Per-resource documentation coverage, kept separate from accessibility.
+- Removal of routes and resources without leaving dangling references.
+- A command-line interface that builds a map from commands on standard input,
+  evaluates scenarios and lists the map as reusable commands.
 - Automated checks for the implemented domain invariants.
 
-The command-line interface currently evaluates two fixed example scenarios. It
-cannot load a personal map or scenario, and there is no persistence or encryption
-yet.
+The map lives in memory only: there is no persistence or encryption yet.
 
 ## Dependency graph
 
@@ -28,17 +29,7 @@ OpSec dependency map.
 
 | Item | Description |
 | :--- | :---------- |
-| Mutation rules | Prevent operations from leaving dangling references. |
 | Import validation | Apply the same invariants to data loaded from external representations. |
-
-## Scenario evaluation
-
-**Goal:** explain which resources remain accessible under a declared loss or
-failure scenario.
-
-| Item | Description |
-| :--- | :---------- |
-| CLI | Accept a map and scenario, then render structured diagnostics and results. |
 
 ## Later milestones
 

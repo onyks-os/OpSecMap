@@ -11,8 +11,9 @@ what remains accessible in a loss scenario.
 ---
 
 !!! warning "Early development"
-    The CLI currently runs only a fixed example. It cannot load your own map or
-    scenario, and it does not provide persistence, encryption, or a graphical view.
+    The CLI reads a map and scenarios as commands and keeps them in memory only.
+    It does not provide persistence, encryption, or a graphical view, so use
+    fictional data.
     Keep passwords and recovery codes out of source files and examples.
 
 ---

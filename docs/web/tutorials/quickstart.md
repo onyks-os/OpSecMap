@@ -1,7 +1,7 @@
 # Tutorial: Quickstart
 
-This tutorial runs the example currently built into the CLI. The application does
-not yet accept a personal map or scenario.
+This tutorial runs the demo built into the CLI, then describes a small map with
+commands. Use fictional data: the CLI does not save or encrypt anything.
 
 **You will need:** Rust 1.75 or newer with Cargo.
 
@@ -22,10 +22,10 @@ cargo run -- --version
 
 You should see `opsecmap 0.1.0`.
 
-## 2. Run the example
+## 2. Run the demo
 
 ```bash
-cargo run --
+cargo run -- --demo
 ```
 
 The program creates four sample resources and two alternative routes to an email
@@ -40,6 +40,7 @@ The example prints:
 
 ```text
 Scenario: Phone lost
+Initial: recovery-sheet; excluded: phone
 email (Test email): accessible via email-recovery
 password-store (Test password manager): undetermined: documentation incomplete or not declared
 phone (Test phone): excluded by the scenario
@@ -47,6 +48,7 @@ recovery-sheet (Test recovery sheet): available at start
 Blocked routes: none
 
 Scenario: Only password manager
+Initial: password-store; excluded: none
 email (Test email): not accessible with the documented procedures
 password-store (Test password manager): available at start
 phone (Test phone): undetermined: documentation incomplete or not declared
@@ -68,6 +70,31 @@ To run those tests yourself:
 ```bash
 cargo test
 ```
+
+## 4. Describe a map yourself
+
+Start the CLI without arguments and type commands. `#` starts a comment.
+
+```text
+$ cargo run
+OpSecMap v0.1.0. Type "help" for the list of commands, "quit" to exit.
+> resource email Test email
+> resource phone Test phone
+> resource backup-codes Test backup codes
+> route email-login email phone Email login
+> route email-codes email backup-codes Backup codes
+> evaluate backup-codes phone
+Initial: backup-codes; excluded: phone
+email (Test email): accessible via email-codes
+phone (Test phone): excluded by the scenario
+backup-codes (Test backup codes): available at start
+Blocked routes: none
+> quit
+```
+
+To repeat the same session later, put the commands in a file and run
+`cargo run < commands.txt`. The `list` command prints the current map as
+commands, ready to save.
 
 ---
 

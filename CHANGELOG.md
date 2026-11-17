@@ -27,15 +27,23 @@ tagged or published release yet.
 - Blocked-route diagnostics with missing prerequisites for unresolved targets.
 - Per-resource documentation coverage (`Unknown`, `Incomplete`, `Complete`),
   set through `DependencyMap::set_coverage` and snapshotted in each evaluation.
+- A command interpreter on standard input: `resource`, `route`, `coverage`,
+  `evaluate`, `remove`, `list`, `help` and `quit`, usable interactively or with a
+  file of commands. Failed commands are reported with their line number and
+  leave the map unchanged.
+- `DependencyMap::remove_route` and `remove_resource`; a resource still used by a
+  route is refused with `MapError::ResourceInUse`.
+- `--demo` and `--help` options, and an example command file in `tests/fixtures/`.
 - A source-only README with badges, example usage, and an AI-use disclosure.
 - Unit tests for resource, map and route invariants.
 - A project logo in the README.
 
 ### Changed
 
-- The CLI demonstration evaluates two scenarios and prints each resource's
-  status, including documentation coverage, and every blocked route with its
-  missing prerequisites.
+- Without arguments the CLI now reads commands from standard input; the
+  demonstration moved to `--demo`. It evaluates two scenarios and prints each
+  resource's status, including documentation coverage, and every blocked route
+  with its missing prerequisites. Unknown arguments exit with code `2`.
 - Public error types implement `Display` and `std::error::Error`, and the model
   and evaluation types implement `Debug`. `ScenarioError` is now exported.
 - `MapError::DuplicateId`, `NotFound` and `DuplicateRouteId` carry the offending

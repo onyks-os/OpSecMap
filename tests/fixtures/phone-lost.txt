@@ -1,0 +1,20 @@
+# Fictional example map: the same one `opsecmap --demo` evaluates.
+# Run it with: opsecmap < tests/fixtures/phone-lost.txt
+
+resource email Test email
+resource password-store Test password manager
+resource phone Test phone
+resource recovery-sheet Test recovery sheet
+
+# Two routes toward the same target: AND inside each, OR across them.
+route email-login email password-store,phone Email login
+route email-recovery email recovery-sheet Email recovery
+
+# Both known procedures for email are documented.
+coverage email complete
+
+# Phone lost: the recovery sheet is still available.
+evaluate recovery-sheet phone
+
+# Only the password manager is available.
+evaluate password-store -
