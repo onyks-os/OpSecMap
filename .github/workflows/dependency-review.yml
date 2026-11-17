@@ -38,4 +38,4 @@ jobs:
         with:
           fail-on-severity: high
           # Licenses excluded by the dependency policy for this AGPL-3.0-or-later project. See SCA_POLICY.md.
-          deny-licenses: SSPL-1.0, BSL-1.1
+          deny-licenses: SSPL-1.0, BUSL-1.1
