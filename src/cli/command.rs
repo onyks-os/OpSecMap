@@ -455,3 +455,52 @@ mod tests {
         );
     }
 }
+
+/// Properties of the parser over arbitrary input lines. `make fuzz` runs them, with
+/// many more cases on the weekly schedule.
+#[cfg(test)]
+mod properties {
+    use super::{parse, Command};
+    use opsecmap::ResourceId;
+    use proptest::prelude::*;
+
+    proptest! {
+        /// Any line, including control characters and broken structure, yields a
+        /// command or an error: never a panic.
+        #[test]
+        fn parse_never_panics(line in "\\PC{0,200}") {
+            let _ = parse(&line);
+        }
+
+        /// Lines assembled from command words reach the argument branches far more
+        /// often than random text does; they must not panic either.
+        #[test]
+        fn parse_never_panics_on_command_like_lines(
+            words in prop::collection::vec(
+                prop_oneof![
+                    Just("resource"), Just("route"), Just("coverage"), Just("evaluate"),
+                    Just("remove"), Just("list"), Just("help"), Just("quit"),
+                    Just("-"), Just(","), Just("a,b"), Just("a,,b"), Just("complete"),
+                    Just("#"), Just("x"),
+                ],
+                0..8,
+            )
+        ) {
+            let _ = parse(&words.join(" "));
+        }
+
+        /// A resource line with a valid ID and label parses to exactly that ID and
+        /// label, with runs of spaces in the label collapsed to one.
+        #[test]
+        fn resource_line_keeps_id_and_label(
+            id in "[a-z][a-z0-9-]{0,15}",
+            words in prop::collection::vec("[A-Za-z0-9]{1,8}", 1..5),
+            gap in " {1,3}",
+        ) {
+            let line = format!("resource {id}{gap}{}", words.join(&gap));
+            let id = ResourceId::new(id).map_err(|e| TestCaseError::fail(e.to_string()))?;
+            let expected = Command::AddResource { id, label: words.join(" ") };
+            prop_assert_eq!(parse(&line), Ok(Some(expected)));
+        }
+    }
+}

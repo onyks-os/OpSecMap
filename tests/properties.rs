@@ -41,5 +41,5 @@ proptest! {
     }
 }
 
-// TODO(template): add one property per parser and validator reachable from
-// untrusted input, and list them in `DYNAMIC_ANALYSIS_POLICY.md`.
+// The CLI command parser is a binary-crate module, which this file cannot
+// import: its properties live in `src/cli/command.rs`, module `properties`.

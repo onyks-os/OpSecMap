@@ -32,9 +32,13 @@ lang-test-integration:
 	@echo "==> [$(PROJECT_SHORT)] Integration tests..."
 	@$(CARGO) test --all-features --test '*' -- --ignored
 
+# Property tests live in tests/properties.rs (library inputs) and in `properties`
+# modules of the binary (CLI inputs, which tests/ cannot import). Both are named
+# explicitly: a name filter that matches nothing would pass with zero tests.
 lang-fuzz:
 	@echo "==> [$(PROJECT_SHORT)] Property-based tests (proptest)..."
-	@PROPTEST_CASES=$${PROPTEST_CASES:-1024} $(CARGO) test --all-features properties
+	@PROPTEST_CASES=$${PROPTEST_CASES:-1024} $(CARGO) test --all-features --test properties
+	@PROPTEST_CASES=$${PROPTEST_CASES:-1024} $(CARGO) test --all-features --bin $(PROJECT_DIST) properties
 
 lang-audit:
 	@echo "==> [$(PROJECT_SHORT)] cargo-audit..."
