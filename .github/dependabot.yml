@@ -11,6 +11,14 @@ updates:
     labels:
       - "dependencies"
       - "ci"
+    # One pull request for all action updates. Without a group, each action path
+    # gets its own PR, which splits families that must move together: the
+    # github/codeql-action init, autobuild, analyze and upload-sarif steps have
+    # to run the same version.
+    groups:
+      github-actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: "cargo"
     directory: "/"
