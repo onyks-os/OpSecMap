@@ -4,7 +4,7 @@
 #
 # cargo-sources.json, next to this file, is generated from Cargo.lock by
 # `make flatpak-sources`: the sandbox has no network, so every crate is a source.
-app-id: io.github.onyks_it.OpSecMap
+app-id: io.github.onyks_os.OpSecMap
 runtime: org.freedesktop.Platform
 runtime-version: '25.08'
 sdk: org.freedesktop.Sdk
@@ -13,8 +13,10 @@ sdk-extensions:
 command: opsecmap
 
 # Nothing outside the sandbox, until the program needs it: each permission is a
-# decision to record here, with its reason.
-# TODO(template): add the finish-args the program needs, e.g. --filesystem=home:ro.
+# decision to record here, with its reason. The CLI reads commands from stdin and
+# opens no files, so it needs none. The planned save/open commands will need file
+# access; prefer a narrow grant such as --filesystem=xdg-documents/OpSecMap over
+# the whole home directory, and record the reason here.
 finish-args: []
 
 build-options:
@@ -32,7 +34,7 @@ modules:
       - cargo --offline fetch --manifest-path Cargo.toml
       - cargo --offline build --release --locked
       - install -Dm755 target/release/opsecmap /app/bin/opsecmap
-      - install -Dm644 LICENSE /app/share/licenses/io.github.onyks_it.OpSecMap/LICENSE
+      - install -Dm644 LICENSE /app/share/licenses/io.github.onyks_os.OpSecMap/LICENSE
     sources:
       - type: dir
         path: ../..

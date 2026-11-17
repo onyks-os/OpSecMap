@@ -1,12 +1,12 @@
 # ---------------------------------------------------------------------------
 # pkg-flatpak.mk — a single-file Flatpak bundle, built by flatpak-builder from
-# packaging/flatpak/io.github.onyks_it.OpSecMap.yml (module: pkg-flatpak).
+# packaging/flatpak/io.github.onyks_os.OpSecMap.yml (module: pkg-flatpak).
 # Published by .github/workflows/package-flatpak.yml.
 # ---------------------------------------------------------------------------
 
 .PHONY: package-flatpak flatpak-sources
 
-FLATPAK_APP_ID   := io.github.onyks_it.OpSecMap
+FLATPAK_APP_ID   := io.github.onyks_os.OpSecMap
 FLATPAK_MANIFEST := packaging/flatpak/$(FLATPAK_APP_ID).yml
 FLATPAK_REMOTE   ?= https://dl.flathub.org/repo/flathub.flatpakrepo
 
@@ -25,6 +25,9 @@ package-flatpak: flatpak-sources ## Build dist/<name>-<version>.flatpak (needs f
 	@flatpak build-bundle --runtime-repo=$(FLATPAK_REMOTE) .flatpak-repo \
 		$(DIST_DIR)/$(PROJECT_DIST)-$(VERSION).flatpak $(FLATPAK_APP_ID)
 	@echo "==> [$(PROJECT_SHORT)] Running it in the sandbox: $(PACKAGE_SMOKE_CMD)"
-	@flatpak-builder --run build-flatpak $(FLATPAK_MANIFEST) $(PACKAGE_SMOKE_CMD)
+	@# `flatpak build` runs the command in the build's sandbox with the app's runtime.
+	@# `flatpak-builder --run` would do the same through rofiles-fuse, which the CI
+	@# container cannot spawn, and it does not accept --disable-rofiles-fuse.
+	@flatpak build build-flatpak $(PACKAGE_SMOKE_CMD)
 
 flatpak-sources:

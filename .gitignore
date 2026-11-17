@@ -47,6 +47,8 @@ build-flatpak/
 .flatpak-builder/
 .flatpak-repo/
 packaging/flatpak/cargo-sources.json
+.cache/
+dist/
 
 # ---------------------------------------------------------------------------
 # Local development notes (not tracked)
