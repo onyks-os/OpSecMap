@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The crate's manifest is currently version `0.1.0`, but the repository has no
 tagged or published release yet.
 
-## Unreleased
+## [Unreleased]
 
 ### Added
 
@@ -59,3 +59,26 @@ tagged or published release yet.
   README and documentation site.
 - Replaced template security, dependency, and release-verification claims with
   descriptions of the current source tree and planned release workflow.
+- Governance, security and contribution policies, issue and pull request
+  templates, and CODEOWNERS describe a single-maintainer project with a CLI that
+  reads untrusted command input.
+- The Flatpak app ID is now `io.github.onyks_os.OpSecMap`, matching the
+  repository owner.
+
+### Removed
+
+- The stale-issue workflow, which would close unanswered reports on a project
+  with one maintainer.
+- `.env.example`, which documented an environment variable the program never
+  read, and the tracked editor settings.
+
+### Fixed
+
+- `make fuzz`, and the weekly fuzzing workflow, ran no tests: its name filter
+  matched none. It now runs the property tests of the library and of the CLI
+  parser, including new properties for arbitrary command lines.
+- The dependency audit job could not publish its result for lack of permission,
+  and dependency review rejected an invalid license identifier.
+- The Flatpak package's sandbox check failed in CI, which cannot run
+  `rofiles-fuse`.
+- The weekly release verification no longer fails while no release exists.

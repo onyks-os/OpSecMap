@@ -1,10 +1,11 @@
-# Every file requires review from the project lead by default.
-# See MAINTAINERS.md for the role definitions.
+# The project has one maintainer, who reviews every change. See MAINTAINERS.md.
 *                       @onyks-os
 
-# Security-critical paths — always require an explicit lead sign-off.
+# Paths where a mistake changes what users are told about their access, or how
+# their data is handled. Review these with extra care.
+/src/model/             @onyks-os
+/src/cli/               @onyks-os
+/Cargo.lock             @onyks-os
 /.github/workflows/     @onyks-os
 /SECURITY.md            @onyks-os
 /docs/security-assessment.md @onyks-os
-
-# TODO(template): add the source paths that carry security-critical logic.

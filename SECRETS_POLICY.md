@@ -1,9 +1,11 @@
 # Secrets in the repository
 
 Do not commit passwords, recovery codes, tokens, private keys, or personal maps.
-The current CLI uses only fixed example labels and does not need application
-credentials. The planned dependency map describes recovery material by name; it
-is not a place to store the material's secret values.
+A map describes recovery material by name, never by its secret value, but even a
+map with only names reveals how someone's accounts can be recovered. Test
+fixtures, examples and issue reports must use fictional resources.
+
+The program needs no credentials or environment variables to build or run.
 
 `make lint-secrets` scans tracked files for a limited set of secret-like
 patterns. That check cannot prove a repository is free of secrets. GitHub

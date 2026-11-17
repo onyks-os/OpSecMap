@@ -10,4 +10,3 @@ Operational shell scripts. Everything here is linted by `make lint-shell` (Shell
 | Script | Purpose |
 | :----- | :------ |
 | `verify.sh` | Full local gate; invoked by `make verify` in CI and by hand. |
-<!-- TODO(template): add install.sh / uninstall.sh here if this project touches the host system. -->

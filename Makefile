@@ -1,4 +1,4 @@
-# OpSecMap (OpSecMap) — developer entrypoint.
+# OpSecMap — developer entrypoint.
 #
 # Every target is documented inline; run `make help` for the full list.
 # Logic lives in the modular fragments under make/ so that this file stays readable:

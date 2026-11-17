@@ -1,7 +1,6 @@
 # Architectural Decision Records (ADRs)
 
-This directory contains the Architectural Decision Records for **OpSecMap
-(OpSecMap)**.
+This directory contains the Architectural Decision Records for **OpSecMap**.
 
 ## Purpose
 

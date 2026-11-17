@@ -7,9 +7,12 @@ authors:
     name: "onyks"
 repository-code: "https://github.com/onyks-os/OpSecMap"
 url: "https://onyks-os.github.io/opsecmap/"
-abstract: "Local-first, zero-trust OpSec dependency mapper. Visualize accounts, devices, backups and recovery paths to find single points of failure before an incident."
+abstract: "Local Rust library and command-line tool that models the access and recovery dependencies between accounts, devices and recovery material, and evaluates what remains reachable after a declared loss."
 keywords:
-  - "OpSecMap"
+  - "opsec"
+  - "account recovery"
+  - "dependency graph"
+  - "security"
+  - "rust"
 license: AGPL-3.0-or-later
 version: "0.1.0"
-date-released: "2026-10-10"

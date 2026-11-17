@@ -1,0 +1,25 @@
+name: ❓ Question
+description: Ask how OpSecMap works or how to model something
+title: "[Question] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe your situation with fictional resources. Never post your real accounts,
+        devices, or where your recovery material is kept.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What are you trying to do or understand?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: What you tried
+      description: Commands you ran, the documentation you read, and what you expected.
+      render: text

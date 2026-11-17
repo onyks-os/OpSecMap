@@ -16,15 +16,15 @@
 
 ## Checklist
 
-- [ ] `make verify` passes locally.
+- [ ] `cargo fmt --all -- --check`, `cargo clippy --all-targets --all-features -- -D warnings` and `cargo test` pass locally (`make verify` also runs `cargo audit`).
 - [ ] Tests are added or updated for the change.
-- [ ] `CHANGELOG.md` is updated under `[Unreleased]`.
+- [ ] `CHANGELOG.md` is updated under `## [Unreleased]`, if the change is visible to users.
 - [ ] Documentation required by [`docs/documentation-policy.md`](../docs/documentation-policy.md) is updated.
 - [ ] An [ADR](../docs/decisions/) is added if this change is architectural.
-- [ ] All commits are signed off (`git commit -s`) per the [DCO](../CONTRIBUTING.md#developer-certificate-of-origin-dco).
+- [ ] All commits are signed off (`git commit -s`) per the [DCO](../CONTRIBUTING.md#commits-and-pull-requests).
 
 ## Security considerations
 
-<!-- Does this change touch a trust boundary, parse untrusted input, alter privileges, or add a
-     dependency? If yes, say how the threat model in docs/security-assessment.md is affected.
-     If no, write "None". -->
+<!-- Does this change touch an input boundary (CLI commands, map files), stored or encrypted data,
+     or add a dependency? If yes, say how docs/security-assessment.md is affected.
+     If no, write "None". Never paste real account or recovery details. -->

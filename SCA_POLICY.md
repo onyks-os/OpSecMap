@@ -1,14 +1,27 @@
 # Dependency review
 
-The repository configures Dependabot updates for Cargo, GitHub Actions, and the
-documentation toolchain in [`.github/dependabot.yml`](.github/dependabot.yml).
-The CI workflow also configures a Rust dependency audit. Direct dependencies
-and their purpose are listed in [DEPENDENCIES.md](DEPENDENCIES.md).
+Direct dependencies and their purpose are listed in [DEPENDENCIES.md](DEPENDENCIES.md).
+The library and the CLI currently use only the Rust standard library at runtime.
 
-Before accepting an update, review its changelog, license, transitive changes,
-and relevance to this project. Run the applicable build and tests. A security
-alert should be investigated in the context of how OpSecMap uses that
-dependency; accepted risks should be recorded rather than silently ignored.
+Automated checks:
+
+- [Dependabot](.github/dependabot.yml) proposes weekly updates for Cargo, GitHub
+  Actions, and the documentation toolchain.
+- The CI workflow audits `Cargo.lock` against the RustSec advisory database.
+- The [dependency review](.github/workflows/dependency-review.yml) workflow blocks
+  pull requests that add a dependency with a known high-severity vulnerability, or
+  under a license incompatible with AGPL-3.0-or-later distribution (SSPL-1.0,
+  BUSL-1.1).
+- `.cargo/config.toml` makes Cargo prefer dependency versions compatible with the
+  minimum Rust version declared in `Cargo.toml`, and CI tests that version.
+
+Before adding or accepting a dependency, review its maintenance, license,
+transitive dependencies and relevance to this project, then run the build and
+tests. Planned features will add dependencies for serialization and for
+encryption: cryptographic code must come from maintained, widely reviewed crates,
+never from new or little-used ones. A security alert is investigated in the
+context of how OpSecMap uses that dependency; accepted risks are recorded rather
+than silently ignored.
 
 There is no published release or committed remediation-time guarantee at this
 stage. Security reports follow [SECURITY.md](SECURITY.md).

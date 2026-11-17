@@ -4,5 +4,5 @@ contact_links:
     url: https://github.com/onyks-os/OpSecMap/security/advisories/new
     about: Please report vulnerabilities privately, never as a public issue.
   - name: 💬 Ask a question
-    url: https://github.com/onyks-os/OpSecMap/discussions
-    about: Usage questions and general discussion.
+    url: https://github.com/onyks-os/OpSecMap/blob/main/SUPPORT.md
+    about: How to get help, and what to include in a question.

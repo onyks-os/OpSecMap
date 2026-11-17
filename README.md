@@ -114,9 +114,11 @@ For each accessible resource, the result distinguishes an initial assumption fro
 ```sh
 cargo test
 cargo fmt --all -- --check
+cargo clippy --all-targets --all-features -- -D warnings
+make fuzz   # property tests, including arbitrary CLI input
 ```
 
-The tests cover validation, alternative routes, chains, cycles, exclusions, evidence, and blocked routes. The evaluator runs in memory and the example does not save application data. Release packaging and verification are future work.
+The tests cover validation, alternative routes, chains, cycles, exclusions, evidence, blocked routes, and the CLI run end to end on fixture files. CI runs them on stable, beta and the minimum Rust version, together with a dependency audit, CodeQL and a reproducible-build check. Release packaging and verification are prepared but nothing has been published yet.
 
 ## Contributing
 

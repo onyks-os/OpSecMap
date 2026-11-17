@@ -10,7 +10,7 @@ body:
       options:
         - label: I searched existing issues and this is not a duplicate.
           required: true
-        - label: I have read the [ROADMAP](../blob/main/ROADMAP.md) and this is not already planned.
+        - label: I have read the [ROADMAP](https://github.com/onyks-os/OpSecMap/blob/main/ROADMAP.md) and this is not already planned.
           required: true
 
   - type: textarea

@@ -15,8 +15,6 @@ machine had installed:
 
 | Artifact | Requirements come from | Provided by |
 | :-- | :-- | :-- |
-| wheel, sdist | `Requires-Dist` in its metadata | `pip` |
-| npm tarball | `dependencies` in its `package.json` | `npm` |
 | `.crate` | `[dependencies]` in its `Cargo.toml` | `cargo` |
 | `.deb` / `.rpm` / Arch package | `Depends` / `Requires` / `depend` | the distribution |
 

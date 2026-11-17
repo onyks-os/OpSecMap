@@ -9,7 +9,7 @@
 pkgname=opsecmap
 pkgver=0.1.0
 pkgrel=1
-pkgdesc='Local-first, zero-trust OpSec dependency mapper. Visualize accounts, devices, backups and recovery paths to find single points of failure before an incident.'
+pkgdesc='Evaluate which accounts remain reachable after losing a device or recovery material'
 arch=('x86_64' 'aarch64')
 url='https://github.com/onyks-os/OpSecMap'
 license=('AGPL-3.0-or-later')

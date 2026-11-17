@@ -5,7 +5,7 @@
 //!
 //! In-memory model and evaluator for account access dependencies. The library
 //! records reachable resources, their access origins, and missing prerequisites
-//! for blocked routes. The binary currently runs a fixed example.
+//! for blocked routes. The binary reads map commands from standard input.
 //!
 //! The public API is still evolving during early development.
 

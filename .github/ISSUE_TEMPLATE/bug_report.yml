@@ -18,14 +18,15 @@ body:
       options:
         - label: I searched existing issues and this is not a duplicate.
           required: true
-        - label: I am running the latest released version.
+        - label: I reproduced it on the latest commit of `main` (there is no published release yet).
           required: true
 
   - type: input
     id: version
     attributes:
       label: Version
-      placeholder: "v0.1.0"
+      description: The commit SHA (`git rev-parse --short HEAD`) or the output of `opsecmap --version`.
+      placeholder: "bc6694c"
     validations:
       required: true
 
@@ -56,10 +57,10 @@ body:
     id: reproduce
     attributes:
       label: Steps to reproduce
-      description: The minimal sequence that triggers the bug.
+      description: The minimal sequence that triggers the bug. For the CLI, the shortest list of commands that reproduces it. Use fictional resource names, never your real accounts.
       placeholder: |
-        1. Run `...`
-        2. Observe `...`
+        resource phone Test phone
+        evaluate phone -
     validations:
       required: true
 

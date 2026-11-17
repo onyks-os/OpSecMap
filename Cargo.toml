@@ -10,8 +10,8 @@ readme = "README.md"
 repository = "https://github.com/onyks-os/OpSecMap"
 homepage = "https://github.com/onyks-os/OpSecMap"
 documentation = "https://github.com/onyks-os/OpSecMap/tree/main/docs"
-keywords = ["OpSecMap"]
-categories = []
+keywords = ["opsec", "security", "account-recovery", "dependency-graph", "cli"]
+categories = ["command-line-utilities"]
 exclude = ["docs/", ".github/", "tests/fixtures/"]
 
 [dependencies]
@@ -58,7 +58,7 @@ maintainer = "onyks <onyks@protonmail.com>"
 copyright = "2026, onyks"
 section = "utils"
 priority = "optional"
-extended-description = "In-memory Rust model and scenario evaluator for account access dependencies. The CLI currently runs a fixed example."
+extended-description = "Describe accounts, devices and recovery material as a map of access routes, then evaluate which resources remain reachable after a loss. The CLI reads commands from standard input and keeps the map in memory."
 # $auto: the shared libraries the binary links, resolved by dpkg-shlibdeps.
 depends = "$auto"
 assets = [

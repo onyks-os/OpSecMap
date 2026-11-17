@@ -1,9 +1,10 @@
 # Contributing to OpSecMap
 
 OpSecMap is in early development. The Rust library models account access and
-recovery dependencies; the CLI currently runs a fixed example. Issues that
-clarify the model, identify a reproducible bug, or improve documentation are
-welcome. Please use [SECURITY.md](SECURITY.md) for vulnerability reports.
+recovery dependencies; the CLI reads map commands from standard input. Issues
+that clarify the model, identify a reproducible bug, or improve documentation
+are welcome. Please use [SECURITY.md](SECURITY.md) for vulnerability reports,
+and describe examples with fictional resources, never your real accounts.
 
 ## Get started
 
@@ -17,10 +18,12 @@ cargo test
 cargo fmt --all -- --check
 ```
 
-The repository's CI also runs Clippy, dependency checks, and a release build.
+The repository's CI also runs Clippy, the test suite on stable, beta and the
+minimum Rust version, property tests, dependency checks, and a release build.
 Run `cargo clippy --all-targets --all-features -- -D warnings` when working on
-Rust code. The current test suite is in-process; there is no external service or
-personal map fixture to configure.
+Rust code, and `make fuzz` when you change a parser or validator. The test suite
+needs no external service; CLI tests run the binary on fixture files in
+`tests/fixtures/`, which must contain fictional data only.
 
 ## Make a change
 

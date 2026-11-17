@@ -1,16 +1,23 @@
 # Dynamic analysis
 
-The current repository uses `proptest` to generate inputs for identifier
-validation. Run the tests locally with `cargo test`. The
-[`fuzzing.yml`](.github/workflows/fuzzing.yml) workflow runs the project's
-property-test target on pull requests and on a weekly schedule. It is
-property-based testing, not coverage-guided fuzzing of an input parser.
+The project uses property-based testing with `proptest`. `make fuzz` runs every
+property test:
 
-The CLI does not yet read map files or other untrusted application input, and
-there is no deserializer or recovery-procedure parser to fuzz. When those input
-boundaries are added, the relevant generators and fuzz targets should be added
-alongside them.
+| Input boundary | Properties | Location |
+| :--- | :--- | :--- |
+| Resource and route IDs | Accept exactly the non-blank values | `tests/properties.rs` |
+| CLI command lines | Never panic on any line; a valid `resource` line keeps its ID and label | `src/cli/command.rs`, module `properties` |
 
-If a generated case reveals a security issue, report it through
-[SECURITY.md](SECURITY.md), keep the failing input as a regression case without
-including real secrets, and verify the fix with the test suite.
+The [`fuzzing.yml`](.github/workflows/fuzzing.yml) workflow runs `make fuzz` on
+pull requests with 1,024 cases per property, and weekly with 100,000. This is
+property-based testing, not coverage-guided fuzzing.
+
+When a new input boundary is added, its properties are added in the same change:
+the planned map-file reader must never panic on arbitrary bytes, and must reject
+any file that the model's own validation would reject. A coverage-guided fuzz
+target (`cargo fuzz`) is worth adding once the program reads files, since a file
+format is more exposed than a line-based command.
+
+If a generated case reveals a defect, keep the failing input as a regression test
+without real data, fix it, and report security-relevant cases through
+[SECURITY.md](SECURITY.md).

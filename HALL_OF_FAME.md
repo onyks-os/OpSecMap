@@ -1,11 +1,11 @@
 # Hall of Fame
 
-This file recognizes security researchers who have responsibly disclosed vulnerabilities in
-OpSecMap (OpSecMap).
+This file thanks the people who have responsibly reported security issues in OpSecMap.
 
-Contributions that keep OpSecMap users secure are highly appreciated.
+A reporter is listed here, with their consent and under the name they choose, when a
+report sent through [SECURITY.md](SECURITY.md) leads to a fix or to a documented change
+in the project's security boundaries.
 
-## Honored Contributors
+## Honored contributors
 
-*New entries will be added here. See the [Security Policy](SECURITY.md) for vulnerability reporting
-and recognition criteria.*
+*No entries yet.*
