@@ -5,7 +5,8 @@
 
 | Kind | Dependency | Declared constraint | Purpose |
 | :--- | :--- | :--- | :--- |
-| Runtime crate | None | — | The current library and binary use the Rust standard library. |
+| Runtime crate | `serde` | `1` | Serialization of the map file format. |
+| Runtime crate | `serde_json` | `1` | Reading and writing the map file as JSON. |
 | Development crate | `proptest` | `1` | Property tests for validated identifiers. |
 | Build toolchain | Rust and Cargo | Rust 1.88 declared in `Cargo.toml` | Build and test the crate. |
 

@@ -55,8 +55,8 @@ include arbitrary command lines (see
 
 ## Supply chain
 
-The library and the CLI have no runtime dependencies beyond the Rust standard
-library; `proptest` is used only in tests. Dependency updates, advisories and
+The only runtime dependencies are `serde` and `serde_json`, which read and write
+the map file format; `proptest` is used only in tests. Dependency updates, advisories and
 licenses are checked as described in [SCA_POLICY.md](../SCA_POLICY.md). There is
 no published release artifact yet, so release signatures, reproducible-build
 checks and SBOMs cannot currently be used as evidence of this project's security.

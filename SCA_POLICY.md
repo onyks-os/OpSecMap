@@ -1,7 +1,8 @@
 # Dependency review
 
 Direct dependencies and their purpose are listed in [DEPENDENCIES.md](DEPENDENCIES.md).
-The library and the CLI currently use only the Rust standard library at runtime.
+At runtime the library and the CLI depend only on `serde` and `serde_json`, used
+for the map file format.
 
 Automated checks:
 

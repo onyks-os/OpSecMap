@@ -34,6 +34,9 @@ tagged or published release yet.
 - `DependencyMap::remove_route` and `remove_resource`; a resource still used by a
   route is refused with `MapError::ResourceInUse`.
 - `--demo` and `--help` options, and an example command file in `tests/fixtures/`.
+- The specification of the map file format, version 1, in `docs/map-format.md`,
+  and its JSON serialization in the library. The CLI cannot save or open maps
+  yet.
 - A source-only README with badges, example usage, and an AI-use disclosure.
 - Unit tests for resource, map and route invariants.
 - A project logo in the README.
