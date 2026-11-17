@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2026 onyks-it
+Copyright (c) 2026 onyks-os
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 
@@ -18,7 +18,7 @@ tagged or published release yet.
 ### Added
 
 - Initial project scaffold generated from
-  [TemplateRepository](https://github.com/onyks-it/TemplateRepository).
+  [TemplateRepository](https://github.com/onyks-os/TemplateRepository).
 - Validated resource and route identifiers.
 - Resource storage, lookup, insertion and renaming through `DependencyMap`.
 - Access and recovery routes with non-empty, unique prerequisite sets.

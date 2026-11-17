@@ -9,7 +9,7 @@ body:
         Thanks for taking the time to file a report.
 
         **Do not use this form for security vulnerabilities.** Report those privately through
-        [GitHub Security Advisories](https://github.com/onyks-it/OpSecMap/security/advisories/new).
+        [GitHub Security Advisories](https://github.com/onyks-os/OpSecMap/security/advisories/new).
 
   - type: checkboxes
     id: preflight

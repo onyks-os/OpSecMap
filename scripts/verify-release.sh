@@ -23,7 +23,7 @@
 set -euo pipefail
 
 tag="${1:?usage: $0 <tag, e.g. v1.2.3> [download-dir]}"
-repo="${GITHUB_REPOSITORY:-onyks-it/OpSecMap}"
+repo="${GITHUB_REPOSITORY:-onyks-os/OpSecMap}"
 dir="${2:-$(mktemp -d)}"
 issuer="https://token.actions.githubusercontent.com"
 root="$(cd "$(dirname "$0")/.." && pwd)"
