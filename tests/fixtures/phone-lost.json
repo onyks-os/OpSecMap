@@ -1,0 +1,45 @@
+{
+  "format": "opsecmap-map",
+  "version": 1,
+  "resources": [
+    {
+      "id": "email",
+      "label": "Test email",
+      "coverage": "complete"
+    },
+    {
+      "id": "password-store",
+      "label": "Test password manager",
+      "coverage": "unknown"
+    },
+    {
+      "id": "phone",
+      "label": "Test phone",
+      "coverage": "unknown"
+    },
+    {
+      "id": "recovery-sheet",
+      "label": "Test recovery sheet",
+      "coverage": "unknown"
+    }
+  ],
+  "routes": [
+    {
+      "id": "email-login",
+      "label": "Email login",
+      "target": "email",
+      "prerequisites": [
+        "password-store",
+        "phone"
+      ]
+    },
+    {
+      "id": "email-recovery",
+      "label": "Email recovery",
+      "target": "email",
+      "prerequisites": [
+        "recovery-sheet"
+      ]
+    }
+  ]
+}

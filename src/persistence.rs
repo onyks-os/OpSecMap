@@ -10,7 +10,10 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{DependencyMap, DocumentationCoverage};
+use crate::{
+    DependencyMap, DocumentationCoverage, MapError, Resource, ResourceError, ResourceId, Route,
+    RouteError, RouteId,
+};
 
 /// Value of the `format` field that identifies an OpSecMap map file.
 const FORMAT: &str = "opsecmap-map";
@@ -33,30 +36,30 @@ struct MapFile {
 
 /// Copies a map into file records, keeping the map's order.
 impl From<&DependencyMap> for MapFile {
-    fn from(dm: &DependencyMap) -> Self {
+    fn from(map: &DependencyMap) -> Self {
         let mut resources = Vec::new();
-        for r in dm.resources() {
-            let resource = ResourceRecord {
-                id: r.id().as_str().to_string(),
-                label: r.label().to_string(),
-                coverage: r.coverage().into(),
+        for resource in map.resources() {
+            let record = ResourceRecord {
+                id: resource.id().as_str().to_string(),
+                label: resource.label().to_string(),
+                coverage: resource.coverage().into(),
             };
-            resources.push(resource);
+            resources.push(record);
         }
 
         let mut routes = Vec::new();
-        for r in dm.routes() {
+        for route in map.routes() {
             let mut prerequisites = Vec::new();
-            for p in r.prerequisites() {
-                prerequisites.push(p.as_str().to_string());
+            for prerequisite in route.prerequisites() {
+                prerequisites.push(prerequisite.as_str().to_string());
             }
-            let route = RouteRecord {
-                id: r.id().as_str().to_string(),
-                label: r.label().to_string(),
-                target: r.target().as_str().to_string(),
+            let record = RouteRecord {
+                id: route.id().as_str().to_string(),
+                label: route.label().to_string(),
+                target: route.target().as_str().to_string(),
                 prerequisites,
             };
-            routes.push(route);
+            routes.push(record);
         }
         Self {
             format: FORMAT.to_string(),
@@ -69,20 +72,62 @@ impl From<&DependencyMap> for MapFile {
 
 /// Why a map could not be written to, or read from, the file format.
 #[derive(Debug)]
-pub(crate) enum MapFileError {
-    /// The JSON could not be produced or parsed.
+pub enum MapFileError {
+    /// The JSON could not be produced or parsed, or does not match the
+    /// version 1 layout: a field is missing, unknown or of the wrong type.
     Json(serde_json::Error),
+    /// The `format` field is not `"opsecmap-map"`: the file is not an OpSecMap map.
+    NotAMapFile,
+    /// The file declares a format version this build cannot read.
+    UnsupportedVersion(u32),
+    /// A resource in the file has an invalid ID or label.
+    Resource(ResourceError),
+    /// A route in the file has an invalid ID, label or prerequisite list.
+    Route(RouteError),
+    /// The file's resources and routes do not form a valid map, for example
+    /// because of a duplicate ID or a reference to a missing resource.
+    Map(MapError),
 }
 
+/// Describes the error in one line, including the underlying model or JSON error.
 impl fmt::Display for MapFileError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Json(e) => write!(f, "invalid map file: {e}"),
+            Self::NotAMapFile => write!(f, "not an OpSecMap map file"),
+            Self::UnsupportedVersion(version) => write!(
+                f,
+                "unsupported map file version {version} (this build reads version {VERSION})"
+            ),
+            Self::Resource(e) => write!(f, "invalid resource in map file: {e}"),
+            Self::Route(e) => write!(f, "invalid route in map file: {e}"),
+            Self::Map(e) => write!(f, "inconsistent map file: {e}"),
         }
     }
 }
 
 impl std::error::Error for MapFileError {}
+
+/// Lets `?` turn a resource error into [`MapFileError::Resource`].
+impl From<ResourceError> for MapFileError {
+    fn from(error: ResourceError) -> Self {
+        Self::Resource(error)
+    }
+}
+
+/// Lets `?` turn a route error into [`MapFileError::Route`].
+impl From<RouteError> for MapFileError {
+    fn from(error: RouteError) -> Self {
+        Self::Route(error)
+    }
+}
+
+/// Lets `?` turn a map error into [`MapFileError::Map`].
+impl From<MapError> for MapFileError {
+    fn from(error: MapError) -> Self {
+        Self::Map(error)
+    }
+}
 
 /// One resource as stored in the file.
 #[derive(Serialize, Deserialize)]
@@ -124,8 +169,8 @@ enum CoverageRecord {
 
 /// Maps each coverage level of the model to the record variant of the same name.
 impl From<DocumentationCoverage> for CoverageRecord {
-    fn from(dc: DocumentationCoverage) -> Self {
-        match dc {
+    fn from(coverage: DocumentationCoverage) -> Self {
+        match coverage {
             DocumentationCoverage::Unknown => Self::Unknown,
             DocumentationCoverage::Incomplete => Self::Incomplete,
             DocumentationCoverage::Complete => Self::Complete,
@@ -133,12 +178,69 @@ impl From<DocumentationCoverage> for CoverageRecord {
     }
 }
 
+/// Maps each record variant back to the model's coverage level of the same name.
+impl From<CoverageRecord> for DocumentationCoverage {
+    fn from(record: CoverageRecord) -> Self {
+        match record {
+            CoverageRecord::Unknown => Self::Unknown,
+            CoverageRecord::Incomplete => Self::Incomplete,
+            CoverageRecord::Complete => Self::Complete,
+        }
+    }
+}
+
+/// The two fields every version of the format starts with.
+///
+/// Without `deny_unknown_fields`, it reads any version's header and ignores the
+/// rest, so the version can be checked before the strict [`MapFile`] parse.
+#[derive(Deserialize)]
+struct FileHeader {
+    /// Format name, compared with [`FORMAT`].
+    format: String,
+    /// Format version, compared with [`VERSION`].
+    version: u32,
+}
+
+/// Validates the records and builds the map in file order.
+///
+/// Every resource is inserted before any route, so a route may refer to any
+/// resource in the file. Each check is the map model's own: the file cannot
+/// produce a map that the public API would reject.
+impl TryFrom<MapFile> for DependencyMap {
+    type Error = MapFileError;
+
+    fn try_from(file: MapFile) -> Result<Self, Self::Error> {
+        let mut map = DependencyMap::new();
+        for record in file.resources {
+            let id = ResourceId::new(record.id)?;
+            let resource = Resource::new(id.clone(), record.label)?;
+            map.insert(resource)?;
+            let coverage = DocumentationCoverage::from(record.coverage);
+            map.set_coverage(&id, coverage)?;
+        }
+        for record in file.routes {
+            let id = RouteId::new(record.id)?;
+            let mut prerequisites = Vec::new();
+            for prerequisite in record.prerequisites {
+                let prerequisite = ResourceId::new(prerequisite)?;
+                prerequisites.push(prerequisite);
+            }
+            let target = ResourceId::new(record.target)?;
+            let route = Route::new(id, record.label, target, prerequisites)?;
+            map.insert_route(route)?;
+        }
+        Ok(map)
+    }
+}
+
 /// Writes `map` as indented JSON in format version 1.
+///
+/// The same map always produces the same string, in map order.
 ///
 /// # Errors
 ///
 /// Returns [`MapFileError::Json`] if serialization fails.
-pub(crate) fn to_json(map: &DependencyMap) -> Result<String, MapFileError> {
+pub fn to_json(map: &DependencyMap) -> Result<String, MapFileError> {
     let file = MapFile::from(map);
     serde_json::to_string_pretty(&file).map_err(MapFileError::Json)
     // Equivalent to
@@ -146,6 +248,31 @@ pub(crate) fn to_json(map: &DependencyMap) -> Result<String, MapFileError> {
     //     Ok(text) => Ok(text),
     //     Err(e) => Err(MapFileError::Json(e)),
     // }
+}
+
+/// Reads a map from JSON in format version 1.
+///
+/// The header is checked first, so a file from another version is reported as
+/// [`MapFileError::UnsupportedVersion`] rather than as a JSON error.
+///
+/// # Errors
+///
+/// - [`MapFileError::Json`] if `text` is not valid JSON or does not match the
+///   version 1 layout.
+/// - [`MapFileError::NotAMapFile`] if the `format` field is wrong.
+/// - [`MapFileError::UnsupportedVersion`] if the version is not 1.
+/// - [`MapFileError::Resource`], [`MapFileError::Route`] or [`MapFileError::Map`]
+///   if the content breaks a rule of the map model.
+pub fn from_json(text: &str) -> Result<DependencyMap, MapFileError> {
+    let header: FileHeader = serde_json::from_str(text).map_err(MapFileError::Json)?;
+    if header.format != FORMAT {
+        return Err(MapFileError::NotAMapFile);
+    }
+    if header.version != VERSION {
+        return Err(MapFileError::UnsupportedVersion(header.version));
+    }
+    let file: MapFile = serde_json::from_str(text).map_err(MapFileError::Json)?;
+    DependencyMap::try_from(file)
 }
 
 #[cfg(test)]

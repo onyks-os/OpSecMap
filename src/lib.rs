@@ -13,8 +13,6 @@
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 mod model;
-// Nothing outside this module uses it until F3 re-exports it.
-#[allow(dead_code)]
 mod persistence;
 
 pub use model::{
@@ -22,6 +20,7 @@ pub use model::{
     DocumentationCoverage, Evaluation, EvaluationError, MapError, Resource, ResourceError,
     ResourceId, Route, RouteError, RouteId, Scenario, ScenarioError,
 };
+pub use persistence::{from_json, to_json, MapFileError};
 
 #[cfg(test)]
 mod tests {

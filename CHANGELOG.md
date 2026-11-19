@@ -35,8 +35,9 @@ tagged or published release yet.
   route is refused with `MapError::ResourceInUse`.
 - `--demo` and `--help` options, and an example command file in `tests/fixtures/`.
 - The specification of the map file format, version 1, in `docs/map-format.md`,
-  and its JSON serialization in the library. The CLI cannot save or open maps
-  yet.
+  and the library functions `to_json` and `from_json` that write and read it.
+  Reading applies every rule of the map model and reports a typed
+  `MapFileError`. The CLI cannot save or open maps yet.
 - A source-only README with badges, example usage, and an AI-use disclosure.
 - Unit tests for resource, map and route invariants.
 - A project logo in the README.
