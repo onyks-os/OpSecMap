@@ -13,7 +13,7 @@ command files and map files.
 ```sh
 opsecmap                     # read commands from standard input
 opsecmap < commands.txt      # run a file of commands
-opsecmap --demo              # evaluate two scenarios on a fictional map
+opsecmap --demo              # save, reopen and evaluate a fictional map
 opsecmap --help
 opsecmap --version
 ```
@@ -24,7 +24,7 @@ From the repository, use `cargo run --` in place of `opsecmap`, for example
 | Argument | Behavior |
 | :------- | :------- |
 | None | Read commands from standard input until `quit` or the end of input. In a terminal, print a short greeting and a `>` prompt. |
-| `--demo` | Build the fictional example map and evaluate two scenarios. |
+| `--demo` | Build the fictional example map, save it to a temporary file, open that file in a new map, delete the file and evaluate two scenarios on the reopened map. |
 | `--help`, `-h` | Print usage and exit. |
 | `--version`, `-V` | Print `opsecmap 0.1.0` and exit. |
 | Anything else | Print usage on standard error and exit with code `2`. |

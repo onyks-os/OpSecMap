@@ -47,10 +47,17 @@ fn fixture_prints_the_same_report_lines_as_the_demo() {
     assert!(demo.status.success(), "{}", stderr(&demo));
     assert_eq!(stderr(&session), "");
 
-    // The demo adds a banner, blank lines and scenario titles around the same reports.
-    let demo_report: Vec<String> = stdout(&demo)
-        .lines()
-        .skip(1)
+    // The demo adds a banner, save and open confirmations, blank lines and
+    // scenario titles around the same reports.
+    let demo_out = stdout(&demo);
+    let mut demo_lines = demo_out.lines().skip(1);
+    assert!(demo_lines
+        .next()
+        .is_some_and(|line| line.starts_with("saved 4 resources and 2 routes to ")));
+    assert!(demo_lines
+        .next()
+        .is_some_and(|line| line.starts_with("opened 4 resources and 2 routes from ")));
+    let demo_report: Vec<String> = demo_lines
         .filter(|line| !line.is_empty() && !line.starts_with("Scenario: "))
         .map(str::to_string)
         .collect();

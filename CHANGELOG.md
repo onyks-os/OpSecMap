@@ -42,7 +42,8 @@ tagged or published release yet.
   temporary file renamed into place, so a failed save keeps the previous file;
   `open` refuses files larger than 1 MiB and replaces the map in use only after
   the whole file has been validated. Map files are plain JSON and are not
-  encrypted.
+  encrypted. `--demo` saves its map to a temporary file and reopens it before
+  evaluating the scenarios.
 - A source-only README with badges, example usage, and an AI-use disclosure.
 - Unit tests for resource, map and route invariants.
 - A project logo in the README.

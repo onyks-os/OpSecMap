@@ -21,7 +21,8 @@ one phone and where recovery material is kept.
 | Rust library API | Values built by the caller through public constructors | Validated by the library |
 
 The program reads and writes only the map files named in `save` and `open`
-commands. It does not use the network, read environment variables, or contact
+commands, and the fictional demo map that `--demo` writes to the system's
+temporary directory and deletes. It does not use the network, read environment variables, or contact
 any provider.
 
 ## Controls present in the code

@@ -17,7 +17,8 @@ commands. The map lives in memory; `save <path>` writes it to a file and
 `open <path>` replaces it with the map in a file. The
 [CLI reference](web/reference/cli.md) documents every command and output line.
 
-`opsecmap --demo` evaluates two scenarios on a fictional map. `--help`/`-h` and
+`opsecmap --demo` saves a fictional map to a temporary file, reopens it,
+deletes the file and evaluates two scenarios on the reopened map. `--help`/`-h` and
 `--version`/`-V` print usage or the version. There is no configuration file or
 output format flag.
 
@@ -48,7 +49,8 @@ The API is still evolving before a stable release.
 ## Files and network
 
 The executable reads and writes only the map files named in `save` and `open`
-commands. They are plain-text JSON, specified in [map-format.md](map-format.md),
+commands, and the temporary demo file that `--demo` writes to the system's
+temporary directory and deletes. They are plain-text JSON, specified in [map-format.md](map-format.md),
 and are **not encrypted**. `save` writes `<path>.tmp` beside the target and
 renames it into place; `open` refuses files larger than 1 MiB. The executable
 does not contact network endpoints. Cargo may access its configured registry when building the

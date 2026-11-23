@@ -56,7 +56,7 @@ cd OpSecMap
 cargo run -- --demo
 ```
 
-The demo creates four resources and two routes to `email`, and declares the routes to `email` completely documented. It then evaluates two scenarios:
+The demo creates four resources and two routes to `email`, and declares the routes to `email` completely documented. It saves the map to a temporary file and reopens it, then evaluates two scenarios on the reopened map:
 
 ```text
 Scenario: Phone lost

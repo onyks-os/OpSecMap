@@ -31,8 +31,10 @@ cargo run -- --demo
 The program creates four sample resources and two alternative routes to an email
 account. Login requires both a password source and a phone; recovery requires an
 offline sheet. The routes to the email account are declared completely
-documented. It then evaluates two scenarios: a lost phone with the recovery sheet
-available, and only the password manager available.
+documented. It saves the map to a temporary file, opens that file again and
+deletes it, so the scenarios run on a map read back from disk. It then evaluates
+two scenarios: a lost phone with the recovery sheet available, and only the
+password manager available.
 
 ## 3. Read the result
 

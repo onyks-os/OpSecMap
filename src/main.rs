@@ -10,7 +10,8 @@
 mod cli;
 
 use std::io::{self, BufRead, IsTerminal, Write};
-use std::process::ExitCode;
+use std::process::{self, ExitCode};
+use std::{env, fs};
 
 use cli::command::{self, Command};
 use cli::session::Session;
@@ -41,7 +42,8 @@ Usage: opsecmap [--demo | --help | --version]
 Without arguments, opsecmap reads commands from standard input, one per line.
 Type \"help\" for the list of commands, or run: opsecmap < commands.txt
 
-  --demo         evaluate two scenarios on a fictional example map
+  --demo         save and reopen a fictional example map, then evaluate two
+                 scenarios on it
   -h, --help     print this message
   -V, --version  print the version";
 
@@ -60,14 +62,41 @@ fn run_line(session: &mut Session, line: &str) -> Result<Option<Vec<String>>, St
     }
 }
 
-/// Builds the demo map and evaluates each demo scenario.
+/// Builds the demo map, saves it to a temporary file, opens that file in a new
+/// session and evaluates each demo scenario on the reopened map.
+///
+/// The temporary file is removed before the scenarios run, whether or not the
+/// save and open succeeded.
 fn run_demo() -> ExitCode {
     println!("OpSecMap v{VERSION} — fictional example map");
 
-    let mut session = Session::default();
+    let mut built = Session::default();
     for line in DEMO_MAP {
-        if let Err(e) = run_line(&mut session, line) {
+        if let Err(e) = run_line(&mut built, line) {
             eprintln!("error in demo map (\"{line}\"): {e}");
+            return ExitCode::FAILURE;
+        }
+    }
+
+    // The process ID keeps two demos running at once from sharing a file.
+    let path = env::temp_dir().join(format!("opsecmap-demo-{}.json", process::id()));
+    let mut session = Session::default();
+    let round_trip = built
+        .execute(Command::Save { path: path.clone() })
+        .and_then(|saved| {
+            let opened = session.execute(Command::Open { path: path.clone() })?;
+            Ok([saved, opened].concat())
+        });
+    // The file may not exist if saving failed; there is nothing else to clean up.
+    let _ = fs::remove_file(&path);
+    match round_trip {
+        Ok(lines) => {
+            for line in lines {
+                println!("{line}");
+            }
+        }
+        Err(e) => {
+            eprintln!("error saving or reopening the demo map: {e}");
             return ExitCode::FAILURE;
         }
     }
