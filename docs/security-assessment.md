@@ -1,9 +1,10 @@
 # Security assessment — current implementation
 
 This document describes the code in the repository today. Vulnerability reports
-belong in [SECURITY.md](../SECURITY.md). Saving maps, encryption, imports, and a
-graphical interface are future designs in [architecture.md](architecture.md), not
-implemented controls.
+belong in [SECURITY.md](../SECURITY.md). Encryption, imports, and a graphical
+interface are future designs in [architecture.md](architecture.md), not
+implemented controls; the threat model for encryption is at the end of this
+page.
 
 ## Assets and boundaries
 
@@ -61,8 +62,27 @@ include arbitrary command lines (see
 
 ## Supply chain
 
-The only runtime dependencies are `serde` and `serde_json`, which read and write
-the map file format; `proptest` is used only in tests. Dependency updates, advisories and
+The runtime dependencies are `serde` and `serde_json`, which read and write the
+map file format, and the crates added for encrypted map files: `argon2`,
+`chacha20poly1305`, `getrandom`, `rpassword` and `zeroize`. They are declared
+but not used by the code yet. `proptest` is used only in tests. Dependency updates, advisories and
 licenses are checked as described in [SCA_POLICY.md](../SCA_POLICY.md). There is
 no published release artifact yet, so release signatures, reproducible-build
 checks and SBOMs cannot currently be used as evidence of this project's security.
+
+## Threat model for encrypted map files (in development)
+
+This section sets the goals for the encrypted format in
+[encrypted-format.md](encrypted-format.md). None of it is implemented yet.
+
+| Adversary | Can | Protection |
+| :--- | :--- | :--- |
+| Someone with a copy of the file: a lost laptop, a backup, a cloud folder | Read and modify the file, try passwords offline | XChaCha20-Poly1305 hides the content and detects any change; Argon2id with 64 MiB per attempt slows password guessing. |
+| Someone who replaces the file | Swap in an older or crafted file | A crafted file fails authentication. An older file encrypted with the same password is accepted: the format does not detect rollback. |
+| Someone who sends a crafted file | Make `open` read it | The 1 MiB limit and the magic, length and version checks come before key derivation; Argon2 parameters are fixed, not read from the file. |
+| Malware or another user with access to the running program | Read memory, the terminal, the environment | **Not protected.** `Zeroizing` shortens the time secrets stay in memory, but copies made by `serde_json` and pages written to swap are not cleared. |
+
+Out of scope: weak passwords (no strength check beyond refusing an empty one),
+recovering a forgotten password, hiding the file's size, and keeping the
+password secret when it is given through `OPSECMAP_PASSWORD`, which other
+processes of the same user can read.

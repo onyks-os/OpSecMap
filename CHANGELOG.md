@@ -44,6 +44,11 @@ tagged or published release yet.
   the whole file has been validated. Map files are plain JSON and are not
   encrypted. `--demo` saves its map to a temporary file and reopens it before
   evaluating the scenarios.
+- The specification of an encrypted map file format (Argon2id and
+  XChaCha20-Poly1305) in `docs/encrypted-format.md`, its decision record (ADR
+  0002) and a threat model. The runtime dependencies `argon2`,
+  `chacha20poly1305`, `getrandom`, `rpassword` and `zeroize` are added for it;
+  encryption is not implemented yet.
 - A source-only README with badges, example usage, and an AI-use disclosure.
 - Unit tests for resource, map and route invariants.
 - A project logo in the README.

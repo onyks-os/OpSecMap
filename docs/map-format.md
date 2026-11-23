@@ -9,6 +9,9 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 hold a saved dependency map. The library reads and writes it, and the CLI's
 `save` and `open` commands store maps in it.
 
+An encrypted variant is specified in [encrypted-format.md](encrypted-format.md)
+but not implemented yet.
+
 > **The file is plain text and is not encrypted.** Anyone who obtains a copy can
 > read every resource, route and coverage level in it. Use fictional data only
 > until encryption is available; never store passwords, recovery codes or a real

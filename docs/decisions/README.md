@@ -38,3 +38,4 @@ make adr TITLE="Short decision title"
 ## Index of Decisions
 
 1. [0001-record-architecture-decisions.md](0001-record-architecture-decisions.md) — Record architectural decisions as ADRs.
+2. [0002-encrypt-map-files-with-argon2id-and-xchacha20-poly1305.md](0002-encrypt-map-files-with-argon2id-and-xchacha20-poly1305.md) — Encrypt map files with Argon2id and XChaCha20-Poly1305.
