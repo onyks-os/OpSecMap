@@ -61,8 +61,7 @@ With the phone lost, login is blocked but recovery through the sheet still
 reaches the email account. With only the password manager, both routes are
 blocked and each line names what is missing. The email account is reported as a
 dead end only because its coverage is declared complete; resources with unknown
-coverage are reported as undetermined, not as impossible. The program does not
-save any map or scenario to disk. The tests exercise other
+coverage are reported as undetermined, not as impossible. The tests exercise other
 cases, including chains, alternatives, exclusions and cycles.
 
 To run those tests yourself:
@@ -95,6 +94,10 @@ Blocked routes: none
 To repeat the same session later, put the commands in a file and run
 `cargo run < commands.txt`. The `list` command prints the current map as
 commands, ready to save.
+
+To keep the map itself, type `save my-map.json` before `quit`; in a later session,
+`open my-map.json` brings it back. The file is plain JSON and is not encrypted,
+so keep using fictional data.
 
 ---
 

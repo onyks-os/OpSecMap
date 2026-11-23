@@ -11,9 +11,9 @@ what remains accessible in a loss scenario.
 ---
 
 !!! warning "Early development"
-    The CLI reads a map and scenarios as commands and keeps them in memory only.
-    It does not provide persistence, encryption, or a graphical view, so use
-    fictional data.
+    The CLI reads a map and scenarios as commands and can save the map to a
+    file. Saved files are plain text: there is no encryption or graphical view
+    yet, so use fictional data.
     Keep passwords and recovery codes out of source files and examples.
 
 ---

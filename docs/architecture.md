@@ -26,8 +26,9 @@ resource and route storage with reference checks, scenario inputs, and an in-mem
 evaluator that follows routes to a fixed point and records missing prerequisites
 for unresolved routes, and per-resource documentation coverage. The CLI builds a
 map from commands read on standard input, evaluates scenarios and prints resource
-statuses and blocked routes; the map is kept in memory only. Persistence,
-encrypted storage, and graphical presentation remain under development.
+statuses and blocked routes. It saves and opens maps as plain JSON files in a
+versioned format, validated on reading. Encrypted storage and graphical
+presentation remain under development.
 Requirements in this document describe the intended complete behavior; they are
 not assertions about security controls that have not yet been implemented.
 
@@ -67,9 +68,9 @@ flowchart TD
     Evaluation --> Model
     Evaluation --> Results[Results and explanation evidence]
     Results --> CLI
-    CLI -. planned .-> Persistence[Local persistence]
-    Persistence -. planned .-> Validation
-    Persistence -. planned .-> Files[Local files]
+    CLI --> Persistence[Map file format]
+    Persistence --> Validation
+    CLI --> Files[Local files]
 ```
 
 | Component | Responsibility |
@@ -78,7 +79,7 @@ flowchart TD
 | Validation | Referential integrity, structural constraints and scenario consistency |
 | Evaluator | Deterministic calculation of accessible resources and supporting evidence |
 | Presentation | User interaction, diagnostics and rendering of evaluation results |
-| Persistence (planned) | Versioned serialization, local file operations and encrypted storage |
+| Persistence | Versioned JSON serialization in the library; file reading and writing in the CLI; encrypted storage planned |
 
 Domain validation and evaluation are independent of terminal I/O and filesystem
 operations. Presentation layers consume structured results rather than reimplement
@@ -235,10 +236,9 @@ semantics. No output category represents an account as globally safe.
 
 ### Storage contract
 
-Planned persistence will use a versioned representation of resources, routes and
-map metadata.
-The file format and migration policy will be specified before persistence is
-released. Plaintext JSON is suitable for development fixtures and explicit export;
+Persistence uses a versioned JSON representation of resources, routes and
+coverage, specified in [map-format.md](map-format.md); a migration policy will
+be defined when a second version exists. Plaintext JSON is suitable for development fixtures and explicit export;
 normal storage of personal maps requires authenticated encryption.
 
 Reads, validation and state replacement are separate operations. Malformed input,
@@ -312,7 +312,7 @@ accuracy of user-supplied recovery procedures.
 | Data restoration | Separate future analysis of backup contents, freshness and restore requirements |
 | Compromise | Separate future analysis of attacker capabilities and confidentiality consequences |
 | Common-cause failures | Shared prerequisites and multi-resource exclusions initially; explicit failure groups deferred |
-| Persistence | Exact schema, format identifiers, migrations and cryptographic envelope pending specification |
+| Persistence | Plaintext version 1 specified; migrations and cryptographic envelope pending specification |
 | Resource representation | Stable identifier implemented; descriptive role vocabulary remains open |
 
 A graphical interface must provide keyboard operation and a textual alternative,

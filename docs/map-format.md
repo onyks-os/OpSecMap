@@ -6,8 +6,8 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 # OpSecMap — map file format
 
 **Status:** in development. This page specifies version 1 of the file that will
-hold a saved dependency map. The library reads and writes it; the CLI cannot
-yet.
+hold a saved dependency map. The library reads and writes it, and the CLI's
+`save` and `open` commands store maps in it.
 
 > **The file is plain text and is not encrypted.** Anyone who obtains a copy can
 > read every resource, route and coverage level in it. Use fictional data only

@@ -18,9 +18,11 @@ release-date commitment; proposed work beyond these milestones is tracked in
 - Removal of routes and resources without leaving dangling references.
 - A command-line interface that builds a map from commands on standard input,
   evaluates scenarios and lists the map as reusable commands.
+- Saving a map to a versioned JSON file and opening it again (`save`, `open`),
+  with every rule of the map applied while reading and a size limit.
 - Automated checks for the implemented domain invariants.
 
-The map lives in memory only: there is no persistence or encryption yet.
+Saved map files are plain text: there is no encryption yet.
 
 ## Dependency graph
 
@@ -33,7 +35,7 @@ OpSec dependency map.
 
 ## Later milestones
 
-- Versioned local persistence and encrypted state.
+- Encrypted map files.
 - Interactive visualization over the same domain model and evaluator.
 - Packaging and release workflows for supported platforms.
 

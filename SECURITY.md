@@ -20,7 +20,8 @@ at this stage. Reporters who agree are thanked in [HALL_OF_FAME.md](HALL_OF_FAME
 
 OpSecMap is an early Rust library and a command-line tool. The CLI reads commands
 from standard input, interactively or from a file, builds a map in memory, and
-evaluates scenarios on it. Nothing is written to disk and nothing is encrypted.
+evaluates scenarios on it. The `save` and `open` commands write and read the map
+as a plain JSON file; nothing is encrypted.
 
 Worth reporting:
 
@@ -30,13 +31,15 @@ Worth reporting:
 - a way to bypass documented validation, such as a dangling route reference or a
   removal that breaks one;
 - a panic, hang or excessive memory use caused by any command input;
-- a command that fails yet changes the map.
+- a command that fails yet changes the map;
+- a map file that `open` accepts although it breaks a rule of the map, or that
+  replaces the map in use after an error.
 
 The evaluator cannot verify a provider's real recovery rules, and its
 availability result is not a confidentiality or data-integrity assessment. See
 the [security assessment](docs/security-assessment.md) for the current boundaries.
 
-Saving maps to disk and encrypted storage are planned. Until encrypted storage
-exists, the project documents that maps should contain fictional data only.
+Encrypted storage is planned. Until it exists, the project documents that maps
+should contain fictional data only.
 
 There are no published release artifacts to verify or install yet.

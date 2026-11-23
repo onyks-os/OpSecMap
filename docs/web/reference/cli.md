@@ -1,9 +1,10 @@
 # Reference: Command Line Interface
 
 The CLI reads commands from standard input, one per line, and keeps the map in
-memory only. It works interactively or with a file of commands. Nothing is saved
-to disk, and nothing is encrypted: use fictional data, and keep passwords and
-recovery codes out of command files.
+memory. It works interactively or with a file of commands. `save` writes the map
+to a file and `open` reads it back. **Map files are plain JSON and are not
+encrypted:** use fictional data, and keep passwords and recovery codes out of
+command files and map files.
 
 ---
 
@@ -45,10 +46,35 @@ ignored. A label is the rest of the line.
 | `remove resource <id>` | `remove resource phone` | Remove a resource. Refused while any route uses it as target or prerequisite. |
 | `remove route <id>` | `remove route email-login` | Remove a route. |
 | `list` | `list` | Print the map as commands. Running that output again rebuilds the same map. |
+| `save <path>` | `save maps/test.json` | Write the map to a file, replacing any file already there, and print `saved 4 resources and 2 routes to maps/test.json`. |
+| `open <path>` | `open maps/test.json` | Replace the map with the one in the file and print `opened 4 resources and 2 routes from maps/test.json`. |
 | `help` | `help` | Print the command reference. |
 | `quit` | `quit` | Stop reading commands. |
 
 IDs cannot contain a comma or be `-`, because the list syntax reserves them.
+
+---
+
+## Map files
+
+The path given to `save` and `open` is the rest of the line exactly as typed,
+apart from spaces at its start and end: `save my map.json` writes `my map.json`,
+and two spaces in a row stay two spaces. A relative path starts from the
+directory the program runs in. The format is specified in
+[map-format.md](https://github.com/onyks-os/OpSecMap/blob/main/docs/map-format.md).
+
+`save` writes the whole file to `<path>.tmp` in the same directory, flushes it
+to disk and renames it over `<path>`. If any step fails, the temporary file is
+removed and an existing file at `<path>` is left as it was.
+
+`open` replaces the map only after the whole file has been read and validated.
+It refuses, and leaves the current map unchanged, when the file:
+
+- cannot be read, for example because it does not exist;
+- is larger than 1 MiB (1,048,576 bytes);
+- is not valid UTF-8 or not valid JSON;
+- is not an OpSecMap map file, or has a version this build does not read;
+- breaks a rule of the map, such as a route that names an absent resource.
 
 ---
 

@@ -37,7 +37,12 @@ tagged or published release yet.
 - The specification of the map file format, version 1, in `docs/map-format.md`,
   and the library functions `to_json` and `from_json` that write and read it.
   Reading applies every rule of the map model and reports a typed
-  `MapFileError`. The CLI cannot save or open maps yet.
+  `MapFileError`.
+- `save <path>` and `open <path>` CLI commands. `save` writes the map through a
+  temporary file renamed into place, so a failed save keeps the previous file;
+  `open` refuses files larger than 1 MiB and replaces the map in use only after
+  the whole file has been validated. Map files are plain JSON and are not
+  encrypted.
 - A source-only README with badges, example usage, and an AI-use disclosure.
 - Unit tests for resource, map and route invariants.
 - A project logo in the README.

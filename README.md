@@ -29,7 +29,7 @@ If your phone disappears, can you still sign in to your email account? OpSecMap 
 
 ## Project status
 
-OpSecMap is at an early, **source-only** stage. The crate's version is `0.1.0`, and the command-line program reads a map and scenarios as commands, interactively or from a file, and keeps them in memory only. There is no persistence, encryption, graphical view, or downloadable release yet. The [roadmap](ROADMAP.md) tracks those steps.
+OpSecMap is at an early, **source-only** stage. The crate's version is `0.1.0`, and the command-line program reads a map and scenarios as commands, interactively or from a file, and can save the map to a JSON file and open it again. There is no encryption, graphical view, or downloadable release yet. The [roadmap](ROADMAP.md) tracks those steps.
 
 The result describes the routes in the map; it does not check whether a provider will accept a real recovery procedure. Do not place passwords, recovery codes, or other secrets in source files or examples.
 
@@ -42,10 +42,9 @@ The result describes the routes in the map; it does not check whether a provider
 | Access evaluation | Follows AND prerequisites and alternative routes through chains, even when the map contains cycles. |
 | Explanations | Records whether access was initial or derived through a chosen route; for unresolved targets, lists each blocked route and its missing prerequisites. |
 | Documentation coverage | Lets you state whether a resource's routes are documented completely, so an unresolved result can be read as a documented dead end or as undetermined. |
-
 | Safe removal | Removes routes and resources, refusing to remove a resource that a route still uses. |
 
-The CLI turns these into commands read from standard input. Nothing is saved or encrypted, so use fictional data only.
+The CLI turns these into commands read from standard input, and can save the map to a file. Saved files are not encrypted, so use fictional data only.
 
 ## Run the example
 
@@ -96,6 +95,17 @@ evaluate recovery-sheet phone
 ```
 
 Type them after `cargo run`, or save them in a file and run `cargo run < commands.txt`; [`tests/fixtures/phone-lost.txt`](tests/fixtures/phone-lost.txt) is a complete example. `list` prints the current map as commands you can run again. The [CLI reference](docs/web/reference/cli.md) lists every command, status and exit code.
+
+### Save and open a map
+
+```text
+save maps/test.json
+open maps/test.json
+```
+
+`save` writes the current map to a JSON file, replacing any file already at that path; `open` replaces the current map with the one in the file. A file that is missing, malformed, larger than 1 MiB or of an unsupported version is refused and the map in use stays as it was. The format is specified in [docs/map-format.md](docs/map-format.md).
+
+> **The file is plain text and is not encrypted.** Anyone with a copy can read every resource and route in it. Use fictional data only until encryption is available.
 
 ## How it works
 

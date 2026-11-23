@@ -38,11 +38,12 @@ usable from available resources.
 ## Current limits
 
 The evaluator works on an in-memory Rust map. The CLI builds that map from
-commands and forgets it when it exits; nothing is saved or encrypted. The
+commands and can save it to a plain JSON file with `save`; nothing is
+encrypted. The
 model does not verify that an account provider will honor the documented recovery
 procedure. Documentation coverage is a statement you make about your own map;
-`Complete` does not prove that a provider offers no other recovery path. Local
-storage, encryption and a graphical view are planned work.
+`Complete` does not prove that a provider offers no other recovery path. Encrypted
+storage and a graphical view are planned work.
 
 The model describes availability after a loss. It does not analyze credential
 compromise, data integrity or whether backups contain recoverable data.

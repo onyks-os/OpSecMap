@@ -10,7 +10,8 @@
 | Development crate | `proptest` | `1` | Property tests for validated identifiers. |
 | Build toolchain | Rust and Cargo | Rust 1.88 declared in `Cargo.toml` | Build and test the crate. |
 
-The CLI example does not require an application service or database. Cargo may
+The CLI example does not require an application service or database. Saving and
+opening map files uses only the Rust standard library. Cargo may
 contact its configured registry to resolve or download build dependencies; use
 `cargo test --offline` when the dependencies are already cached.
 

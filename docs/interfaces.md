@@ -13,7 +13,8 @@ today; see [the architecture document](architecture.md) for intended behavior.
 Without arguments, `opsecmap` reads commands from standard input, one per line,
 interactively or from a redirected file. Commands add resources and routes, set
 documentation coverage, evaluate scenarios, remove elements and list the map as
-commands. The map lives in memory only. The
+commands. The map lives in memory; `save <path>` writes it to a file and
+`open <path>` replaces it with the map in a file. The
 [CLI reference](web/reference/cli.md) documents every command and output line.
 
 `opsecmap --demo` evaluates two scenarios on a fictional map. `--help`/`-h` and
@@ -36,7 +37,9 @@ for an accessible resource. It also exposes blocked routes and their missing
 prerequisites for targets that remain inaccessible and are not excluded, and
 the documentation coverage each resource had when the evaluation ran. The map
 can remove routes and resources, refusing to remove a resource that a route
-still uses. See the
+still uses. `to_json` and `from_json` convert a map to and from the
+[map file format](map-format.md) as text; the library itself never opens a
+file. See the
 public types and documentation in
 [`src/lib.rs`](../src/lib.rs) and the model modules.
 
@@ -44,6 +47,9 @@ The API is still evolving before a stable release.
 
 ## Files and network
 
-The executable does not read or write application data files and does not contact
-network endpoints. Cargo may access its configured registry when building the
+The executable reads and writes only the map files named in `save` and `open`
+commands. They are plain-text JSON, specified in [map-format.md](map-format.md),
+and are **not encrypted**. `save` writes `<path>.tmp` beside the target and
+renames it into place; `open` refuses files larger than 1 MiB. The executable
+does not contact network endpoints. Cargo may access its configured registry when building the
 project unless dependencies are already cached or `--offline` is used.

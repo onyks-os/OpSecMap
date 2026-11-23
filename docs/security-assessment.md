@@ -17,11 +17,12 @@ one phone and where recovery material is kept.
 | :--- | :--- | :--- |
 | CLI standard input | Command lines typed or redirected from a file | Untrusted text |
 | CLI arguments | `--demo`, `--help`, `--version` | Untrusted, matched exactly |
+| Map files read by `open` | JSON text from the path the user typed | Untrusted, size-limited and fully validated |
 | Rust library API | Values built by the caller through public constructors | Validated by the library |
 
-The program does not write files, read files it opens itself, use the network,
-read environment variables, or contact any provider. The map lives in memory and
-is lost when the process exits.
+The program reads and writes only the map files named in `save` and `open`
+commands. It does not use the network, read environment variables, or contact
+any provider.
 
 ## Controls present in the code
 
@@ -32,6 +33,8 @@ is lost when the process exits.
 | Resource and route construction | Reject blank IDs or labels and empty or duplicate route prerequisites. |
 | Dependency map changes | Reject duplicate IDs, references to absent resources, coverage updates for absent resources, and removal of a resource that any route still uses. |
 | Scenario construction and evaluation | Reject duplicate or conflicting initial/excluded IDs, then reject scenario IDs absent from the map. |
+| Map file reading | Refuse files over 1 MiB before parsing, then check the format name and version, reject unknown fields, and rebuild the map through the public constructors. The map in use is replaced only after every check passes. |
+| Map file writing | Write `<path>.tmp` in the same directory, flush it to disk and rename it over the target, so an interrupted save leaves the previous file intact; remove the temporary file on failure. |
 | Evaluation | Keep excluded resources inaccessible and derive access only through routes whose prerequisites are accessible. Evaluation always terminates. |
 
 Unit, integration and property tests exercise these rules; the property tests
@@ -45,9 +48,11 @@ include arbitrary command lines (see
   size limit. A very large input can use a lot of memory or time; with input
   coming from the user's own terminal or file, this is a robustness issue rather
   than a privilege boundary.
-- **Data at rest.** Nothing is stored yet. Command files that users write and
-  redirect into the CLI are plain text outside the program's control; the
-  documentation tells users to keep them fictional until encrypted storage exists.
+- **Data at rest.** Map files written by `save` are plain, unencrypted JSON, and
+  the program sets no special file permissions: anyone who can read the file
+  can read the map. Command files that users redirect into the CLI are plain
+  text too. The documentation tells users to keep both fictional until
+  encrypted storage exists.
 - **Result meaning.** The evaluator reasons only over the routes supplied to it.
   An undocumented or incorrect provider procedure can make a result misleading.
   A resource being accessible does not prove that its data can be restored, that
