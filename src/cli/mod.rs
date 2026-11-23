@@ -10,3 +10,4 @@
 pub(crate) mod command;
 pub(crate) mod render;
 pub(crate) mod session;
+pub(crate) mod storage;

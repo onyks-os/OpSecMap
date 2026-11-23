@@ -7,8 +7,8 @@
 //! stands for an empty list. A label is the rest of the line, with runs of
 //! whitespace collapsed to single spaces.
 
-use std::fmt;
 use std::str::SplitWhitespace;
+use std::{fmt, path::PathBuf};
 
 use opsecmap::{DocumentationCoverage, ResourceError, ResourceId, RouteError, RouteId};
 
@@ -21,6 +21,8 @@ pub(crate) const HELP: &[&str] = &[
     "remove resource <id>                            remove a resource no route refers to",
     "remove route <id>                               remove a route",
     "list                                            print the map as commands",
+    "save <path>                                     write the map to a file (plain text, not encrypted)",
+    "open <path>                                     replace the map with the one in a file",
     "help                                            print this reference",
     "quit                                            stop reading commands",
     "Blank lines and lines starting with # are ignored.",
@@ -70,6 +72,16 @@ pub(crate) enum Command {
     RemoveRoute {
         /// Route to remove.
         id: RouteId,
+    },
+    /// `save <path>`
+    Save {
+        /// File to write.
+        path: PathBuf,
+    },
+    /// `open <path>`
+    Open {
+        /// File to read.
+        path: PathBuf,
     },
     /// `list`
     List,
@@ -182,6 +194,12 @@ pub(crate) fn parse(line: &str) -> Result<Option<Command>, ParseError> {
             end(words)?;
             command
         }
+        "save" => Command::Save {
+            path: rest_of_line(line)?,
+        },
+        "open" => Command::Open {
+            path: rest_of_line(line)?,
+        },
         "list" => {
             end(words)?;
             Command::List
@@ -269,6 +287,18 @@ fn coverage(text: &str) -> Result<DocumentationCoverage, ParseError> {
         "complete" => Ok(DocumentationCoverage::Complete),
         other => Err(ParseError::InvalidCoverage(other.to_string())),
     }
+}
+
+/// Returns the rest of the line after the command name, unchanged except for
+/// surrounding whitespace, as a path; at least one character is required.
+fn rest_of_line(line: &str) -> Result<PathBuf, ParseError> {
+    let path = line
+        .split_once(char::is_whitespace)
+        .map_or("", |(_, rest)| rest.trim());
+    if path.is_empty() {
+        return Err(ParseError::MissingArgument("path"));
+    }
+    Ok(PathBuf::from(path))
 }
 
 #[cfg(test)]

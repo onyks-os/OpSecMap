@@ -6,12 +6,16 @@
 use std::fmt;
 
 use opsecmap::{
-    DependencyMap, DocumentationCoverage, Evaluation, EvaluationError, MapError, Resource,
-    ResourceError, ResourceId, Route, RouteError, Scenario, ScenarioError,
+    from_json, to_json, DependencyMap, DocumentationCoverage, Evaluation, EvaluationError,
+    MapError, MapFileError, Resource, ResourceError, ResourceId, Route, RouteError, Scenario,
+    ScenarioError,
 };
+
+use crate::cli::storage::StorageError;
 
 use super::command::{coverage_keyword, Command, HELP};
 use super::render;
+use super::storage::{read_map_file, write_map_file};
 
 /// The map built by the commands of one run.
 #[derive(Debug, Default)]
@@ -20,9 +24,9 @@ pub(crate) struct Session {
     map: DependencyMap,
 }
 
-/// A library error raised while executing a command.
+/// An error raised while executing a command.
 ///
-/// Each variant wraps the error of one library operation; the `From` impls
+/// Each variant wraps the error of one library or file operation; the `From` impls
 /// below let `?` convert them without an explicit `match`.
 #[derive(Debug)]
 pub(crate) enum SessionError {
@@ -36,6 +40,10 @@ pub(crate) enum SessionError {
     Scenario(ScenarioError),
     /// The scenario refers to resources absent from the map.
     Evaluation(EvaluationError),
+    /// The map file could not be read or written, or is too large.
+    Storage(StorageError),
+    /// The map file was read but is not a valid map.
+    File(MapFileError),
 }
 
 impl fmt::Display for SessionError {
@@ -46,6 +54,8 @@ impl fmt::Display for SessionError {
             Self::Map(e) => write!(f, "{e}"),
             Self::Scenario(e) => write!(f, "{e}"),
             Self::Evaluation(e) => write!(f, "{e}"),
+            Self::Storage(e) => write!(f, "{e}"),
+            Self::File(e) => write!(f, "{e}"),
         }
     }
 }
@@ -77,6 +87,18 @@ impl From<ScenarioError> for SessionError {
 impl From<EvaluationError> for SessionError {
     fn from(e: EvaluationError) -> Self {
         Self::Evaluation(e)
+    }
+}
+
+impl From<StorageError> for SessionError {
+    fn from(e: StorageError) -> Self {
+        Self::Storage(e)
+    }
+}
+
+impl From<MapFileError> for SessionError {
+    fn from(e: MapFileError) -> Self {
+        Self::File(e)
     }
 }
 
@@ -123,6 +145,27 @@ impl Session {
             Command::RemoveRoute { id } => {
                 self.map.remove_route(&id)?;
                 Ok(Vec::new())
+            }
+            Command::Save { path } => {
+                let text = to_json(&self.map)?;
+                write_map_file(&path, &text)?;
+                Ok(vec![format!(
+                    "saved {} resources and {} routes to {}",
+                    self.map.resources().len(),
+                    self.map.routes().len(),
+                    path.display()
+                )])
+            }
+            Command::Open { path } => {
+                let text = read_map_file(&path)?;
+                let map = from_json(&text)?;
+                self.map = map;
+                Ok(vec![format!(
+                    "opened {} resources and {} routes from {}",
+                    self.map.resources().len(),
+                    self.map.routes().len(),
+                    path.display()
+                )])
             }
             Command::List => Ok(self.list()),
             Command::Help => Ok(HELP.iter().map(|line| (*line).to_string()).collect()),
