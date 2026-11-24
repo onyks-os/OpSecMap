@@ -11,6 +11,8 @@
 use std::fmt;
 
 use argon2::{Algorithm, Argon2, Params, Version};
+use chacha20poly1305::aead::{Aead, KeyInit, Payload};
+use chacha20poly1305::{XChaCha20Poly1305, XNonce};
 use zeroize::Zeroizing;
 
 const MAGIC: &[u8; 8] = b"OPSECMAP";
@@ -88,10 +90,56 @@ fn derive_key(password: &[u8], salt: &[u8]) -> Result<Zeroizing<[u8; KEY_LEN]>, 
     Ok(key)
 }
 
+/// Encrypts `plaintext` with a key derived from `password`, and returns the
+/// whole encrypted map file.
+///
+/// Every call draws a new random salt and nonce, so encrypting the same text
+/// with the same password twice gives two different files. The file is the
+/// 49-byte header (magic, format version, salt, nonce) followed by
+/// the ciphertext and its 16-byte authentication tag; the header is
+/// authenticated too, as associated data, so changing any of its bytes makes
+/// decryption fail.
+///
+/// # Errors
+///
+/// Returns [`CryptoError::Random`] if the system cannot provide random bytes,
+/// [`CryptoError::KeyDerivation`] if Argon2 fails, and [`CryptoError::Cipher`]
+/// if the cipher cannot be set up or cannot encrypt.
+pub fn encrypt(plaintext: &[u8], password: &[u8]) -> Result<Vec<u8>, CryptoError> {
+    let mut salt = [0u8; SALT_LEN];
+    let mut nonce = [0u8; NONCE_LEN];
+    getrandom::fill(&mut salt).map_err(CryptoError::Random)?;
+    getrandom::fill(&mut nonce).map_err(CryptoError::Random)?;
+    let key = derive_key(password, &salt)?;
+    let mut file = Vec::with_capacity(HEADER_LEN + plaintext.len() + TAG_LEN);
+    file.extend_from_slice(MAGIC);
+    file.push(FORMAT_VERSION);
+    file.extend_from_slice(&salt);
+    file.extend_from_slice(&nonce);
+    let xnonce = XNonce::from(nonce);
+    let payload = Payload {
+        msg: plaintext,
+        aad: &file,
+    };
+    let cipher =
+        XChaCha20Poly1305::new_from_slice(key.as_slice()).map_err(|_| CryptoError::Cipher)?;
+
+    let ciphertext = cipher
+        .encrypt(&xnonce, payload)
+        .map_err(|_| CryptoError::Cipher)?;
+    file.extend_from_slice(&ciphertext);
+    Ok(file)
+}
+
 #[cfg(test)]
 #[allow(clippy::expect_used)]
 mod tests {
-    use super::{derive_key, CryptoError, FORMAT_VERSION, KEY_LEN};
+    use super::{
+        derive_key, encrypt, CryptoError, FORMAT_VERSION, HEADER_LEN, KEY_LEN, MAGIC, NONCE_START,
+        SALT_START, TAG_LEN,
+    };
+    use chacha20poly1305::aead::{Aead, KeyInit, Payload};
+    use chacha20poly1305::{XChaCha20Poly1305, XNonce};
 
     const SALT: &[u8] = b"fictional-salt-1";
 
@@ -128,6 +176,92 @@ mod tests {
         assert_eq!(
             CryptoError::UnsupportedVersion(2).to_string(),
             format!("unsupported encrypted map file version 2 (this build reads version {FORMAT_VERSION})")
+        );
+    }
+
+    const PLAINTEXT: &[u8] = br#"{"format_version":1,"resources":[],"routes":[]}"#;
+
+    /// Decrypts `file` by hand from its header fields, without `decrypt`,
+    /// to check that `encrypt` follows the format.
+    fn open_by_hand(file: &[u8], password: &[u8]) -> Option<Vec<u8>> {
+        let (header, ciphertext) = file.split_at(HEADER_LEN);
+        let key = derive_key(password, &header[SALT_START..NONCE_START]).ok()?;
+        let cipher = XChaCha20Poly1305::new_from_slice(key.as_slice()).ok()?;
+        let nonce = XNonce::try_from(&header[NONCE_START..]).ok()?;
+        cipher
+            .decrypt(
+                &nonce,
+                Payload {
+                    msg: ciphertext,
+                    aad: header,
+                },
+            )
+            .ok()
+    }
+
+    #[test]
+    fn encrypted_file_has_the_header_then_ciphertext_and_tag() {
+        let file = encrypt(PLAINTEXT, b"test password").expect("encryption must succeed");
+
+        assert_eq!(HEADER_LEN, 49);
+        assert_eq!(file.len(), HEADER_LEN + PLAINTEXT.len() + TAG_LEN);
+        assert_eq!(&file[..MAGIC.len()], MAGIC);
+        assert_eq!(file[MAGIC.len()], FORMAT_VERSION);
+    }
+
+    #[test]
+    fn encrypted_file_does_not_contain_the_plaintext() {
+        let file = encrypt(PLAINTEXT, b"test password").expect("encryption must succeed");
+
+        assert!(!file
+            .windows(b"resources".len())
+            .any(|window| window == b"resources"));
+    }
+
+    #[test]
+    fn encrypting_twice_gives_a_different_salt_nonce_and_ciphertext() {
+        let first = encrypt(PLAINTEXT, b"test password").expect("encryption must succeed");
+        let second = encrypt(PLAINTEXT, b"test password").expect("encryption must succeed");
+
+        assert_ne!(
+            first[SALT_START..NONCE_START],
+            second[SALT_START..NONCE_START]
+        );
+        assert_ne!(
+            first[NONCE_START..HEADER_LEN],
+            second[NONCE_START..HEADER_LEN]
+        );
+        assert_ne!(first[HEADER_LEN..], second[HEADER_LEN..]);
+    }
+
+    #[test]
+    fn the_header_fields_and_password_decrypt_the_file() {
+        let file = encrypt(PLAINTEXT, b"test password").expect("encryption must succeed");
+
+        assert_eq!(
+            open_by_hand(&file, b"test password").as_deref(),
+            Some(PLAINTEXT)
+        );
+        assert_eq!(open_by_hand(&file, b"wrong password"), None);
+    }
+
+    #[test]
+    fn a_changed_header_byte_makes_decryption_fail() {
+        let mut file = encrypt(PLAINTEXT, b"test password").expect("encryption must succeed");
+        // Flips the format version: the header is authenticated as associated data.
+        file[MAGIC.len()] ^= 1;
+
+        assert_eq!(open_by_hand(&file, b"test password"), None);
+    }
+
+    #[test]
+    fn empty_plaintext_gives_header_and_tag_only() {
+        let file = encrypt(b"", b"test password").expect("encryption must succeed");
+
+        assert_eq!(file.len(), HEADER_LEN + TAG_LEN);
+        assert_eq!(
+            open_by_hand(&file, b"test password").as_deref(),
+            Some(&b""[..])
         );
     }
 }
