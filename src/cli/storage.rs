@@ -18,14 +18,15 @@ use std::path::{Path, PathBuf};
 /// it is even parsed.
 pub(crate) const MAX_FILE_BYTES: u64 = 1_048_576; // 1MiB
 
-/// Reads the whole file at `path` as text.
+/// Reads the whole file at `path` as bytes; [`into_text`] turns them into text.
+///
+/// The bytes are not checked: an encrypted map file is not text.
 ///
 /// # Errors
 ///
-/// Returns [`StorageError::Io`] if the file cannot be opened or read, or is not
-/// valid UTF-8, and [`StorageError::TooLarge`] if it is larger than
-/// [`MAX_FILE_BYTES`].
-pub(crate) fn read_map_file(path: &Path) -> Result<String, StorageError> {
+/// Returns [`StorageError::Io`] if the file cannot be opened or read, and
+/// [`StorageError::TooLarge`] if it is larger than [`MAX_FILE_BYTES`].
+pub(crate) fn read_map_file(path: &Path) -> Result<Vec<u8>, StorageError> {
     let file = File::open(path).map_err(StorageError::Io)?;
     let mut reader = file.take(MAX_FILE_BYTES + 1);
     let mut buffer: Vec<u8> = Vec::new();
@@ -33,9 +34,7 @@ pub(crate) fn read_map_file(path: &Path) -> Result<String, StorageError> {
     if buffer.len() as u64 > MAX_FILE_BYTES {
         return Err(StorageError::TooLarge);
     }
-    String::from_utf8(buffer).map_err(|error| {
-        StorageError::Io(std::io::Error::new(std::io::ErrorKind::InvalidData, error))
-    })
+    Ok(buffer)
 }
 
 /// Writes `contents` to `path`, replacing any existing file in a single step.
@@ -49,7 +48,7 @@ pub(crate) fn read_map_file(path: &Path) -> Result<String, StorageError> {
 ///
 /// Returns [`StorageError::Io`] if the temporary file cannot be created,
 /// written, flushed or renamed.
-pub(crate) fn write_map_file(path: &Path, contents: &str) -> Result<(), StorageError> {
+pub(crate) fn write_map_file(path: &Path, contents: &[u8]) -> Result<(), StorageError> {
     let mut tmp = path.as_os_str().to_owned();
     tmp.push(".tmp");
     let tmp = PathBuf::from(tmp);
@@ -67,12 +66,27 @@ pub(crate) fn write_map_file(path: &Path, contents: &str) -> Result<(), StorageE
 ///
 /// Returns the first I/O error. It does not remove `tmp`; [`write_map_file`]
 /// does that.
-fn write_then_rename(tmp: &Path, path: &Path, contents: &str) -> std::io::Result<()> {
+fn write_then_rename(tmp: &Path, path: &Path, contents: &[u8]) -> std::io::Result<()> {
     let mut file = File::create(tmp)?;
-    file.write_all(contents.as_bytes())?;
+    file.write_all(contents)?;
     file.sync_all()?;
     fs::rename(tmp, path)?;
     Ok(())
+}
+
+/// Reads the bytes of a map file as UTF-8 text, without copying them.
+///
+/// The returned text borrows from `bytes`, so it stays valid only as long as
+/// `bytes` does.
+///
+/// # Errors
+///
+/// Returns [`StorageError::Io`] with [`std::io::ErrorKind::InvalidData`] if
+/// `bytes` is not valid UTF-8.
+pub(crate) fn into_text(bytes: &[u8]) -> Result<&str, StorageError> {
+    std::str::from_utf8(bytes).map_err(|error| {
+        StorageError::Io(std::io::Error::new(std::io::ErrorKind::InvalidData, error))
+    })
 }
 
 /// An error while reading or writing a map file.

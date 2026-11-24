@@ -11,7 +11,7 @@ use opsecmap::{
     ScenarioError,
 };
 
-use crate::cli::storage::StorageError;
+use crate::cli::storage::{into_text, StorageError};
 
 use super::command::{coverage_keyword, Command, HELP};
 use super::render;
@@ -148,7 +148,7 @@ impl Session {
             }
             Command::Save { path } => {
                 let text = to_json(&self.map)?;
-                write_map_file(&path, &text)?;
+                write_map_file(&path, text.as_bytes())?;
                 Ok(vec![format!(
                     "saved {} resources and {} routes to {}",
                     self.map.resources().len(),
@@ -157,8 +157,9 @@ impl Session {
                 )])
             }
             Command::Open { path } => {
-                let text = read_map_file(&path)?;
-                let map = from_json(&text)?;
+                let vec = read_map_file(&path)?;
+                let text = into_text(&vec)?;
+                let map = from_json(text)?;
                 self.map = map;
                 Ok(vec![format!(
                     "opened {} resources and {} routes from {}",
