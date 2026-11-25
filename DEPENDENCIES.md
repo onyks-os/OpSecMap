@@ -16,8 +16,8 @@
 | Build toolchain | Rust and Cargo | Rust 1.88 declared in `Cargo.toml` | Build and test the crate. |
 
 The CLI example does not require an application service or database. Saving and
-opening map files uses only the Rust standard library. The encryption crates are
-added for encrypted map files, which are specified but not implemented yet; see
+opening map files uses the Rust standard library for file access. The
+encryption crates implement encrypted map files; see
 [ADR 0002](docs/decisions/0002-encrypt-map-files-with-argon2id-and-xchacha20-poly1305.md).
 `Cargo.toml` builds `argon2` and its `blake2` dependency optimized in debug
 builds too, so tests that derive a key stay fast. Cargo may

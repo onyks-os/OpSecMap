@@ -5,9 +5,12 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 # OpSecMap — encrypted map file format
 
-**Status:** specified, not implemented yet. Today `save` still writes the
-[plain-text format](map-format.md). The reasons for this design are in
+**Status:** implemented. `save` writes this format, `export` writes the
+[plain-text format](map-format.md), and `open` reads both. The library functions
+are `encrypt`, `decrypt` and `is_encrypted`. The reasons for this design are in
 [ADR 0002](decisions/0002-encrypt-map-files-with-argon2id-and-xchacha20-poly1305.md).
+The implementation has not been independently reviewed: until the first
+release, prefer fictional maps.
 
 ## Layout, version 1
 
@@ -51,11 +54,52 @@ the costly key derivation:
 The size limit for map files (1 MiB) applies to the encrypted file before any
 of these steps.
 
+## Password
+
+The CLI reads the password from the terminal with echo turned off, not from
+standard input, so it works when commands come from a file. `save` asks for it
+twice and refuses an empty password or two different ones; `open` asks once,
+only after the file has passed the size and header checks. When the environment
+variable `OPSECMAP_PASSWORD` is set, its value is used instead of the terminal;
+it exists for tests and fictional maps (see [Limits](#limits)).
+
 ## Limits
 
-- The file protects the map at rest. It does not protect a map open in a running
-  program on a compromised computer.
-- There is no password recovery: a forgotten password makes the map unreadable.
-  Keep a copy of the file in a second place and the password in a separate one,
-  such as a password manager or an offline sheet.
-- The file size reveals the approximate size of the map.
+- **A lost password is a lost map.** There is no recovery: nobody, including the
+  project, can open the file without the password.
+- **A compromised computer is not protected.** The file protects the map at
+  rest. Malware or another user who can read the running program's memory, the
+  terminal or the keyboard can read the password and the map.
+- **Not every copy in memory is cleared.** The password, the key and the
+  decrypted JSON are held in `Zeroizing` buffers, which are overwritten when
+  dropped. Copies made inside `serde_json` while reading and writing, and the
+  map itself, are not; memory written to swap or to a hibernation file can keep
+  them on disk.
+- **The stack and the CPU registers are not cleared.** While a secret is being
+  used, the compiler may put copies of it, or of values computed from it, in
+  local variables on the stack and in registers. `Zeroizing` clears only the
+  buffer it owns, so those copies stay until the memory is reused. The
+  operating system also saves registers when it switches between programs, and
+  the terminal driver briefly holds the typed password; neither is under the
+  program's control.
+- **`OPSECMAP_PASSWORD` is visible** to other processes of the same user, and
+  can end up in shell history or scripts. Do not use it for a real password.
+- **Weak passwords stay weak.** Argon2id makes each guess cost 64 MiB and a
+  fraction of a second, but a short or common password can still be guessed
+  offline. Only an empty password is refused; use a long passphrase.
+- **Rollback is not detected.** An older file encrypted with the same password
+  opens normally.
+- **The file size reveals** the approximate size of the map.
+
+## Backups
+
+Because a lost password or a damaged file cannot be recovered:
+
+1. Keep a copy of the encrypted file in a second place, such as another disk or
+   a cloud folder. The copy is as safe as the original: it is encrypted.
+2. Keep the password **separately** from every copy of the file, for example in
+   a password manager or on an offline sheet. A password stored next to the file
+   protects nothing.
+3. After changing the map, save it and replace the backup copy, then check that
+   the copy opens.
+4. An `export`ed file is plain text: do not keep one as a backup.

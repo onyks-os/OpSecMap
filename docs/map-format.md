@@ -5,17 +5,17 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 # OpSecMap — map file format
 
-**Status:** in development. This page specifies version 1 of the file that will
-hold a saved dependency map. The library reads and writes it, and the CLI's
-`save` and `open` commands store maps in it.
+**Status:** in development. This page specifies version 1 of the plain-text
+file that holds a dependency map. The library reads and writes it; the CLI's
+`export` command writes it and `open` reads it.
 
-An encrypted variant is specified in [encrypted-format.md](encrypted-format.md)
-but not implemented yet.
+`save` encrypts this same JSON into the format specified in
+[encrypted-format.md](encrypted-format.md), and `open` recognizes both.
 
 > **The file is plain text and is not encrypted.** Anyone who obtains a copy can
-> read every resource, route and coverage level in it. Use fictional data only
-> until encryption is available; never store passwords, recovery codes or a real
-> personal map in this format.
+> read every resource, route and coverage level in it. Use `save` for a map you
+> keep, and `export` only when you need to read or process the JSON; never store
+> passwords, recovery codes or a real personal map in this format.
 
 ## Example
 

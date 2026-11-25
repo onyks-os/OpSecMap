@@ -12,8 +12,10 @@
 
 ## Keep a map you built interactively
 
-Run `list` before `quit`. Its output is the map written as commands; save it to a
-file and run that file later to rebuild the same map. The file is plain text, so
-keep it fictional until encrypted storage exists. The
-[roadmap](https://github.com/onyks-os/OpSecMap/blob/main/ROADMAP.md) tracks
-persistence and encryption.
+Type `save <path>` before `quit`: the map is written encrypted with a password
+you choose, and `open <path>` brings it back in a later session. There is no
+password recovery, so keep a copy of the file in a second place and the password
+separately.
+
+`list` prints the map written as commands instead; a file of those commands, or
+one written by `export`, is plain text and readable by anyone with a copy.

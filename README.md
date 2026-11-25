@@ -29,7 +29,7 @@ If your phone disappears, can you still sign in to your email account? OpSecMap 
 
 ## Project status
 
-OpSecMap is at an early, **source-only** stage. The crate's version is `0.1.0`, and the command-line program reads a map and scenarios as commands, interactively or from a file, and can save the map to a JSON file and open it again. There is no encryption, graphical view, or downloadable release yet. The [roadmap](ROADMAP.md) tracks those steps.
+OpSecMap is at an early, **source-only** stage. The crate's version is `0.1.0`, and the command-line program reads a map and scenarios as commands, interactively or from a file, and can save the map to an encrypted file and open it again. There is no graphical view or downloadable release yet. The [roadmap](ROADMAP.md) tracks those steps.
 
 The result describes the routes in the map; it does not check whether a provider will accept a real recovery procedure. Do not place passwords, recovery codes, or other secrets in source files or examples.
 
@@ -44,7 +44,7 @@ The result describes the routes in the map; it does not check whether a provider
 | Documentation coverage | Lets you state whether a resource's routes are documented completely, so an unresolved result can be read as a documented dead end or as undetermined. |
 | Safe removal | Removes routes and resources, refusing to remove a resource that a route still uses. |
 
-The CLI turns these into commands read from standard input, and can save the map to a file. Saved files are not encrypted, so use fictional data only.
+The CLI turns these into commands read from standard input, and can save the map to a password-encrypted file (Argon2id and XChaCha20-Poly1305) or export it as plain JSON. The encryption has not been independently reviewed: until the first release, prefer fictional maps.
 
 ## Run the example
 
@@ -56,7 +56,7 @@ cd OpSecMap
 cargo run -- --demo
 ```
 
-The demo creates four resources and two routes to `email`, and declares the routes to `email` completely documented. It saves the map to a temporary file and reopens it, then evaluates two scenarios on the reopened map:
+The demo creates four resources and two routes to `email`, and declares the routes to `email` completely documented. It exports the map to a temporary file and reopens it, then evaluates two scenarios on the reopened map:
 
 ```text
 Scenario: Phone lost
@@ -99,13 +99,13 @@ Type them after `cargo run`, or save them in a file and run `cargo run < command
 ### Save and open a map
 
 ```text
-save maps/test.json
-open maps/test.json
+save maps/test.opsecmap
+open maps/test.opsecmap
 ```
 
-`save` writes the current map to a JSON file, replacing any file already at that path; `open` replaces the current map with the one in the file. A file that is missing, malformed, larger than 1 MiB or of an unsupported version is refused and the map in use stays as it was. The format is specified in [docs/map-format.md](docs/map-format.md).
+`save` asks for a new password twice, without showing it, and writes the map encrypted, replacing any file already at that path. `open` replaces the current map with the one in the file, asking for the password if the file is encrypted. A file that is missing, damaged, larger than 1 MiB, of an unsupported version or opened with the wrong password is refused, and the map in use stays as it was. `export <path>` writes the map as plain JSON instead.
 
-> **The file is plain text and is not encrypted.** Anyone with a copy can read every resource and route in it. Use fictional data only until encryption is available.
+> **A lost password is a lost map.** There is no password recovery. Keep a copy of the encrypted file in a second place and the password separately, for example in a password manager. The [encrypted format](docs/encrypted-format.md) lists what encryption does not protect against, such as a compromised computer; the plain format is in [docs/map-format.md](docs/map-format.md).
 
 ## How it works
 

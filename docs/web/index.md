@@ -12,8 +12,9 @@ what remains accessible in a loss scenario.
 
 !!! warning "Early development"
     The CLI reads a map and scenarios as commands and can save the map to a
-    file. Saved files are plain text: there is no encryption or graphical view
-    yet, so use fictional data.
+    password-encrypted file. The encryption has not been independently reviewed
+    and there is no graphical view yet: until the first release, use fictional
+    data.
     Keep passwords and recovery codes out of source files and examples.
 
 ---

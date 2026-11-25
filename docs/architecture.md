@@ -26,9 +26,9 @@ resource and route storage with reference checks, scenario inputs, and an in-mem
 evaluator that follows routes to a fixed point and records missing prerequisites
 for unresolved routes, and per-resource documentation coverage. The CLI builds a
 map from commands read on standard input, evaluates scenarios and prints resource
-statuses and blocked routes. It saves and opens maps as plain JSON files in a
-versioned format, validated on reading. Encrypted storage and graphical
-presentation remain under development.
+statuses and blocked routes. It saves maps encrypted with a password, exports
+them as plain JSON in a versioned format, and validates both on reading.
+Graphical presentation remains under development.
 Requirements in this document describe the intended complete behavior; they are
 not assertions about security controls that have not yet been implemented.
 
@@ -79,7 +79,7 @@ flowchart TD
 | Validation | Referential integrity, structural constraints and scenario consistency |
 | Evaluator | Deterministic calculation of accessible resources and supporting evidence |
 | Presentation | User interaction, diagnostics and rendering of evaluation results |
-| Persistence | Versioned JSON serialization in the library; file reading and writing in the CLI; encrypted storage planned |
+| Persistence | Versioned JSON serialization and password-based encryption in the library; file, terminal and password I/O in the CLI |
 
 Domain validation and evaluation are independent of terminal I/O and filesystem
 operations. Presentation layers consume structured results rather than reimplement
@@ -253,9 +253,13 @@ notes and relationships may disclose recovery channels and concentrations of acc
 Encrypted storage is therefore a prerequisite for supported personal-data use.
 
 Password-based key derivation and authenticated encryption must use maintained
-libraries. Argon2id and AES-256-GCM are candidate primitives; library selection,
-parameter policy, envelope format, metadata authentication and nonce management
-remain subject to the persistence specification and review.
+libraries. The map is encrypted with Argon2id (`argon2` crate) for key
+derivation and XChaCha20-Poly1305 (`chacha20poly1305` crate) for authenticated
+encryption, both from the RustCrypto project, as decided in
+[ADR 0002](decisions/0002-encrypt-map-files-with-argon2id-and-xchacha20-poly1305.md).
+The envelope format, fixed parameters, header authentication and per-save
+random salt and nonce are specified in [encrypted-format.md](encrypted-format.md).
+The implementation has not been independently reviewed.
 
 The implementation must avoid plaintext temporary files and sensitive logs, make
 plaintext export explicit, and document password handling and memory-clearing
@@ -275,8 +279,8 @@ and backup/recovery of the map itself are part of the storage design.
 Encryption at rest does not protect an unlocked map from a compromised host,
 screenshots or malicious application code. A web distribution would additionally
 require a policy for script delivery, dependencies and updates. The
-[current security assessment](security-assessment.md) lists implemented controls
-separately from future storage requirements.
+[current security assessment](security-assessment.md) lists the implemented
+controls and the threat model for encrypted map files.
 
 ## 8. Verification requirements
 

@@ -20,9 +20,9 @@ release-date commitment; proposed work beyond these milestones is tracked in
   evaluates scenarios and lists the map as reusable commands.
 - Saving a map to a versioned JSON file and opening it again (`save`, `open`),
   with every rule of the map applied while reading and a size limit.
+- Password-encrypted map files (Argon2id and XChaCha20-Poly1305): `save`
+  encrypts, `export` writes plain JSON, `open` reads both.
 - Automated checks for the implemented domain invariants.
-
-Saved map files are plain text: there is no encryption yet.
 
 ## Dependency graph
 
@@ -35,7 +35,6 @@ OpSec dependency map.
 
 ## Later milestones
 
-- Encrypted map files.
 - Interactive visualization over the same domain model and evaluator.
 - Packaging and release workflows for supported platforms.
 
