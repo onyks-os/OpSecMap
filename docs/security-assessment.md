@@ -44,8 +44,10 @@ any provider.
 | Evaluation | Keep excluded resources inaccessible and derive access only through routes whose prerequisites are accessible. Evaluation always terminates. |
 
 Unit, integration and property tests exercise these rules; the property tests
-include arbitrary command lines (see
-[DYNAMIC_ANALYSIS_POLICY.md](../DYNAMIC_ANALYSIS_POLICY.md)). The manifest forbids
+include arbitrary command lines and arbitrary map files, plain and encrypted
+(see [DYNAMIC_ANALYSIS_POLICY.md](../DYNAMIC_ANALYSIS_POLICY.md)). The encrypted
+format is also checked against libsodium, an independent implementation, and
+the project's own review of it is in [crypto-review.md](crypto-review.md). The manifest forbids
 `unsafe` code, and Clippy denies `unwrap`, `expect` and `panic` outside tests.
 
 ## Known limits

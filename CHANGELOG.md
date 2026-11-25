@@ -56,6 +56,14 @@ tagged or published release yet.
   password is read from the terminal with echo off, or from `OPSECMAP_PASSWORD`
   for tests. `export <path>` writes the plain JSON that `save` used to write,
   and `--demo` uses it.
+- Checks of the encryption: a test vector written by libsodium, an
+  implementation independent of the crates OpSecMap uses, which the key
+  derivation, the encryption and the decryption must match byte for byte;
+  property tests of `decrypt` and `from_json` on arbitrary input; an exhaustive
+  test that changing any byte of an encrypted file is refused; scripts in
+  `tests/manual/` that check password entry in a real terminal and decrypt a
+  saved file with libsodium; and a self-review checklist in
+  `docs/crypto-review.md`.
 - A source-only README with badges, example usage, and an AI-use disclosure.
 - Unit tests for resource, map and route invariants.
 - A project logo in the README.

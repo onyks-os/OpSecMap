@@ -110,13 +110,33 @@ pub fn encrypt(plaintext: &[u8], password: &[u8]) -> Result<Vec<u8>, CryptoError
     let mut nonce = [0u8; NONCE_LEN];
     getrandom::fill(&mut salt).map_err(CryptoError::Random)?;
     getrandom::fill(&mut nonce).map_err(CryptoError::Random)?;
-    let key: Zeroizing<[u8; 32]> = derive_key(password, &salt)?;
+    seal(plaintext, password, &salt, &nonce)
+}
+
+/// Builds the encrypted file for `plaintext` with the given `salt` and `nonce`.
+///
+/// Only [`encrypt`] calls it outside tests, always with a new random salt and
+/// nonce: reusing a nonce with the same key would break the cipher. Tests call
+/// it with fixed values to compare its output with an independent
+/// implementation of the format (`tests/manual/libsodium.py`).
+///
+/// # Errors
+///
+/// Returns [`CryptoError::KeyDerivation`] if Argon2 fails, and
+/// [`CryptoError::Cipher`] if the cipher cannot be set up or cannot encrypt.
+fn seal(
+    plaintext: &[u8],
+    password: &[u8],
+    salt: &[u8; SALT_LEN],
+    nonce: &[u8; NONCE_LEN],
+) -> Result<Vec<u8>, CryptoError> {
+    let key: Zeroizing<[u8; 32]> = derive_key(password, salt)?;
     let mut file = Vec::with_capacity(HEADER_LEN + plaintext.len() + TAG_LEN);
     file.extend_from_slice(MAGIC);
     file.push(FORMAT_VERSION);
-    file.extend_from_slice(&salt);
-    file.extend_from_slice(&nonce);
-    let xnonce = XNonce::from(nonce);
+    file.extend_from_slice(salt);
+    file.extend_from_slice(nonce);
+    let xnonce = XNonce::from(*nonce);
     let payload = Payload {
         msg: plaintext,
         aad: &file,
@@ -187,8 +207,8 @@ pub fn decrypt(file: &[u8], password: &[u8]) -> Result<Zeroizing<Vec<u8>>, Crypt
 #[allow(clippy::expect_used)]
 mod tests {
     use super::{
-        decrypt, derive_key, encrypt, is_encrypted, CryptoError, FORMAT_VERSION, HEADER_LEN,
-        KEY_LEN, MAGIC, NONCE_START, SALT_START, TAG_LEN,
+        decrypt, derive_key, encrypt, is_encrypted, seal, CryptoError, FORMAT_VERSION, HEADER_LEN,
+        KEY_LEN, MAGIC, NONCE_LEN, NONCE_START, SALT_LEN, SALT_START, TAG_LEN,
     };
 
     const SALT: &[u8] = b"fictional-salt-1";
@@ -299,24 +319,36 @@ mod tests {
     }
 
     #[test]
-    fn a_changed_byte_in_any_part_of_the_file_is_rejected() {
-        let file = encrypt_fixture();
-        // One position per field; each one that reaches authentication runs Argon2,
-        // so testing every byte would make the test slow.
-        let positions = [
-            ("magic", 0),
-            ("version", MAGIC.len()),
-            ("salt", SALT_START),
-            ("nonce", NONCE_START),
-            ("ciphertext", HEADER_LEN),
-            ("tag", file.len() - 1),
-        ];
+    fn changing_any_byte_of_the_file_is_rejected() {
+        let file = encrypt(b"{}", b"test password").expect("encryption must succeed");
+        let positions: Vec<usize> = (0..file.len()).collect();
+        // Most positions run Argon2 (64 MiB each), so a few threads share them.
+        let accepted: Vec<usize> = std::thread::scope(|scope| {
+            let workers: Vec<_> = positions
+                .chunks(positions.len().div_ceil(4))
+                .map(|chunk| {
+                    let file = &file;
+                    scope.spawn(move || {
+                        chunk
+                            .iter()
+                            .copied()
+                            .filter(|&position| {
+                                let mut changed = file.clone();
+                                changed[position] ^= 1;
+                                decrypt(&changed, b"test password").is_ok()
+                            })
+                            .collect::<Vec<usize>>()
+                    })
+                })
+                .collect();
+            workers
+                .into_iter()
+                .flat_map(|worker| worker.join().expect("worker must not panic"))
+                .collect()
+        });
 
-        for (field, position) in positions {
-            let mut changed = file.clone();
-            changed[position] ^= 1;
-            assert!(decrypt(&changed, b"test password").is_err(), "{field}");
-        }
+        assert_eq!(file.len(), HEADER_LEN + 2 + TAG_LEN);
+        assert_eq!(accepted, Vec::<usize>::new());
     }
 
     #[test]
@@ -372,5 +404,74 @@ mod tests {
             ));
         }
         assert!(is_encrypted(&encrypt_fixture()));
+    }
+
+    /// Test vector written by libsodium, an implementation of Argon2id and
+    /// XChaCha20-Poly1305 independent of the RustCrypto crates, following only
+    /// `docs/encrypted-format.md`. Regenerate it with
+    /// `python3 tests/manual/libsodium.py vector`.
+    mod libsodium_vector {
+        pub(super) const FILE: &[u8] = include_bytes!("../tests/fixtures/encrypted-v1.opsecmap");
+        pub(super) const PASSWORD: &[u8] = b"correct horse battery staple";
+        pub(super) const KEY_HEX: &str =
+            "0d1a3c6523c8f06e4e0af9c515aa5b5448cfebd6838f2d52c3d8b6ef8ddc3c2e";
+        pub(super) const PLAINTEXT: &[u8] = b"{\n  \"format\": \"opsecmap-map\",\n  \"version\": 1,\n  \"resources\": [\n    {\n      \"id\": \"phone\",\n      \"label\": \"Test phone\",\n      \"coverage\": \"unknown\"\n    }\n  ],\n  \"routes\": []\n}";
+
+        /// Salt `00 01 … 0f` and nonce `10 11 … 27`.
+        pub(super) fn salt_and_nonce() -> ([u8; super::SALT_LEN], [u8; super::NONCE_LEN]) {
+            (
+                std::array::from_fn(|i| u8::try_from(i).expect("index fits a byte")),
+                std::array::from_fn(|i| u8::try_from(0x10 + i).expect("index fits a byte")),
+            )
+        }
+    }
+
+    fn hex(bytes: &[u8]) -> String {
+        use std::fmt::Write as _;
+        bytes.iter().fold(String::new(), |mut text, byte| {
+            let _ = write!(text, "{byte:02x}");
+            text
+        })
+    }
+
+    #[test]
+    fn key_derivation_matches_libsodium() {
+        let (salt, _) = libsodium_vector::salt_and_nonce();
+
+        let key = derive_key(libsodium_vector::PASSWORD, &salt).expect("key must derive");
+
+        assert_eq!(hex(key.as_slice()), libsodium_vector::KEY_HEX);
+    }
+
+    #[test]
+    fn sealed_file_matches_libsodium_byte_for_byte() {
+        let (salt, nonce) = libsodium_vector::salt_and_nonce();
+
+        let file = seal(
+            libsodium_vector::PLAINTEXT,
+            libsodium_vector::PASSWORD,
+            &salt,
+            &nonce,
+        )
+        .expect("sealing must succeed");
+
+        assert_eq!(hex(&file), hex(libsodium_vector::FILE));
+    }
+
+    #[test]
+    fn file_written_by_libsodium_decrypts() {
+        let plaintext =
+            decrypt(libsodium_vector::FILE, libsodium_vector::PASSWORD).expect("must decrypt");
+
+        assert_eq!(plaintext.as_slice(), libsodium_vector::PLAINTEXT);
+        assert!(opsecmap_json_is_valid(&plaintext));
+    }
+
+    /// The vector's plaintext is a valid map, so `open` would accept the file.
+    fn opsecmap_json_is_valid(plaintext: &[u8]) -> bool {
+        std::str::from_utf8(plaintext)
+            .ok()
+            .and_then(|text| crate::from_json(text).ok())
+            .is_some_and(|map| map.resources().len() == 1)
     }
 }
