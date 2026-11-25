@@ -110,7 +110,7 @@ pub fn encrypt(plaintext: &[u8], password: &[u8]) -> Result<Vec<u8>, CryptoError
     let mut nonce = [0u8; NONCE_LEN];
     getrandom::fill(&mut salt).map_err(CryptoError::Random)?;
     getrandom::fill(&mut nonce).map_err(CryptoError::Random)?;
-    let key = derive_key(password, &salt)?;
+    let key: Zeroizing<[u8; 32]> = derive_key(password, &salt)?;
     let mut file = Vec::with_capacity(HEADER_LEN + plaintext.len() + TAG_LEN);
     file.extend_from_slice(MAGIC);
     file.push(FORMAT_VERSION);
@@ -131,15 +131,65 @@ pub fn encrypt(plaintext: &[u8], password: &[u8]) -> Result<Vec<u8>, CryptoError
     Ok(file)
 }
 
+/// Whether `file` starts with the encrypted format's magic bytes.
+///
+/// It only looks at the first bytes: a `true` does not mean the file is
+/// complete, of a supported version, or decryptable.
+#[must_use]
+pub fn is_encrypted(file: &[u8]) -> bool {
+    file.starts_with(MAGIC)
+}
+
+/// Decrypts an encrypted map file with `password` and returns the plaintext.
+///
+/// The cheap checks (magic, length, version) run before the key derivation,
+/// which takes 64 MiB of memory. The plaintext is cleared from memory when the
+/// returned value is dropped.
+///
+/// # Errors
+///
+/// - [`CryptoError::NotEncrypted`] if `file` does not start with the magic bytes;
+/// - [`CryptoError::Truncated`] if it is too short for a header and a tag;
+/// - [`CryptoError::UnsupportedVersion`] if its format version is not 1;
+/// - [`CryptoError::KeyDerivation`] or [`CryptoError::Cipher`] if the key or the
+///   cipher cannot be set up;
+/// - [`CryptoError::WrongPasswordOrDamaged`] if authentication fails, because
+///   the password is wrong or any byte of the file was changed.
+pub fn decrypt(file: &[u8], password: &[u8]) -> Result<Zeroizing<Vec<u8>>, CryptoError> {
+    if !file.starts_with(MAGIC) {
+        return Err(CryptoError::NotEncrypted);
+    }
+    if file.len() < HEADER_LEN + TAG_LEN {
+        return Err(CryptoError::Truncated);
+    }
+    let (header, ciphertext) = file.split_at(HEADER_LEN);
+    let version = header[MAGIC.len()];
+    if version != FORMAT_VERSION {
+        return Err(CryptoError::UnsupportedVersion(version));
+    }
+    let salt = &header[SALT_START..NONCE_START];
+    let nonce = &header[NONCE_START..];
+    let key: Zeroizing<[u8; 32]> = derive_key(password, salt)?;
+    let xnonce = XNonce::try_from(nonce).map_err(|_| CryptoError::Cipher)?;
+    let payload = Payload {
+        msg: ciphertext,
+        aad: header,
+    };
+    let cipher =
+        XChaCha20Poly1305::new_from_slice(key.as_slice()).map_err(|_| CryptoError::Cipher)?;
+    let plaintext = cipher
+        .decrypt(&xnonce, payload)
+        .map_err(|_| CryptoError::WrongPasswordOrDamaged)?;
+    Ok(Zeroizing::new(plaintext))
+}
+
 #[cfg(test)]
 #[allow(clippy::expect_used)]
 mod tests {
     use super::{
-        derive_key, encrypt, CryptoError, FORMAT_VERSION, HEADER_LEN, KEY_LEN, MAGIC, NONCE_START,
-        SALT_START, TAG_LEN,
+        decrypt, derive_key, encrypt, is_encrypted, CryptoError, FORMAT_VERSION, HEADER_LEN,
+        KEY_LEN, MAGIC, NONCE_START, SALT_START, TAG_LEN,
     };
-    use chacha20poly1305::aead::{Aead, KeyInit, Payload};
-    use chacha20poly1305::{XChaCha20Poly1305, XNonce};
 
     const SALT: &[u8] = b"fictional-salt-1";
 
@@ -181,24 +231,6 @@ mod tests {
 
     const PLAINTEXT: &[u8] = br#"{"format_version":1,"resources":[],"routes":[]}"#;
 
-    /// Decrypts `file` by hand from its header fields, without `decrypt`,
-    /// to check that `encrypt` follows the format.
-    fn open_by_hand(file: &[u8], password: &[u8]) -> Option<Vec<u8>> {
-        let (header, ciphertext) = file.split_at(HEADER_LEN);
-        let key = derive_key(password, &header[SALT_START..NONCE_START]).ok()?;
-        let cipher = XChaCha20Poly1305::new_from_slice(key.as_slice()).ok()?;
-        let nonce = XNonce::try_from(&header[NONCE_START..]).ok()?;
-        cipher
-            .decrypt(
-                &nonce,
-                Payload {
-                    msg: ciphertext,
-                    aad: header,
-                },
-            )
-            .ok()
-    }
-
     #[test]
     fn encrypted_file_has_the_header_then_ciphertext_and_tag() {
         let file = encrypt(PLAINTEXT, b"test password").expect("encryption must succeed");
@@ -234,34 +266,111 @@ mod tests {
         assert_ne!(first[HEADER_LEN..], second[HEADER_LEN..]);
     }
 
-    #[test]
-    fn the_header_fields_and_password_decrypt_the_file() {
-        let file = encrypt(PLAINTEXT, b"test password").expect("encryption must succeed");
-
-        assert_eq!(
-            open_by_hand(&file, b"test password").as_deref(),
-            Some(PLAINTEXT)
-        );
-        assert_eq!(open_by_hand(&file, b"wrong password"), None);
+    fn encrypt_fixture() -> Vec<u8> {
+        encrypt(PLAINTEXT, b"test password").expect("encryption must succeed")
     }
 
     #[test]
-    fn a_changed_header_byte_makes_decryption_fail() {
-        let mut file = encrypt(PLAINTEXT, b"test password").expect("encryption must succeed");
-        // Flips the format version: the header is authenticated as associated data.
-        file[MAGIC.len()] ^= 1;
+    fn decrypt_returns_the_encrypted_text() {
+        let file = encrypt_fixture();
 
-        assert_eq!(open_by_hand(&file, b"test password"), None);
+        let plaintext = decrypt(&file, b"test password").expect("decryption must succeed");
+
+        assert_eq!(plaintext.as_slice(), PLAINTEXT);
     }
 
     #[test]
-    fn empty_plaintext_gives_header_and_tag_only() {
+    fn empty_plaintext_gives_header_and_tag_only_and_decrypts() {
         let file = encrypt(b"", b"test password").expect("encryption must succeed");
 
         assert_eq!(file.len(), HEADER_LEN + TAG_LEN);
-        assert_eq!(
-            open_by_hand(&file, b"test password").as_deref(),
-            Some(&b""[..])
-        );
+        let plaintext = decrypt(&file, b"test password").expect("decryption must succeed");
+        assert!(plaintext.is_empty());
+    }
+
+    #[test]
+    fn wrong_password_is_rejected() {
+        let file = encrypt_fixture();
+
+        assert!(matches!(
+            decrypt(&file, b"wrong password"),
+            Err(CryptoError::WrongPasswordOrDamaged)
+        ));
+    }
+
+    #[test]
+    fn a_changed_byte_in_any_part_of_the_file_is_rejected() {
+        let file = encrypt_fixture();
+        // One position per field; each one that reaches authentication runs Argon2,
+        // so testing every byte would make the test slow.
+        let positions = [
+            ("magic", 0),
+            ("version", MAGIC.len()),
+            ("salt", SALT_START),
+            ("nonce", NONCE_START),
+            ("ciphertext", HEADER_LEN),
+            ("tag", file.len() - 1),
+        ];
+
+        for (field, position) in positions {
+            let mut changed = file.clone();
+            changed[position] ^= 1;
+            assert!(decrypt(&changed, b"test password").is_err(), "{field}");
+        }
+    }
+
+    #[test]
+    fn changed_salt_nonce_ciphertext_or_tag_fail_authentication() {
+        let file = encrypt_fixture();
+
+        for position in [SALT_START, NONCE_START, HEADER_LEN, file.len() - 1] {
+            let mut changed = file.clone();
+            changed[position] ^= 1;
+            assert!(
+                matches!(
+                    decrypt(&changed, b"test password"),
+                    Err(CryptoError::WrongPasswordOrDamaged)
+                ),
+                "{position}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_file_too_short_for_header_and_tag_is_truncated() {
+        let file = encrypt(b"", b"test password").expect("encryption must succeed");
+
+        for length in [MAGIC.len(), HEADER_LEN, HEADER_LEN + TAG_LEN - 1] {
+            assert!(
+                matches!(
+                    decrypt(&file[..length], b"test password"),
+                    Err(CryptoError::Truncated)
+                ),
+                "{length}"
+            );
+        }
+    }
+
+    #[test]
+    fn another_format_version_is_unsupported() {
+        let mut file = encrypt_fixture();
+        file[MAGIC.len()] = 2;
+
+        assert!(matches!(
+            decrypt(&file, b"test password"),
+            Err(CryptoError::UnsupportedVersion(2))
+        ));
+    }
+
+    #[test]
+    fn plain_json_and_empty_files_are_not_encrypted() {
+        for file in [PLAINTEXT, b"", b"OPSECMA"] {
+            assert!(!is_encrypted(file));
+            assert!(matches!(
+                decrypt(file, b"test password"),
+                Err(CryptoError::NotEncrypted)
+            ));
+        }
+        assert!(is_encrypted(&encrypt_fixture()));
     }
 }

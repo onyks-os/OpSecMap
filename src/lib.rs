@@ -16,7 +16,7 @@ mod crypto;
 mod model;
 mod persistence;
 
-pub use crypto::{encrypt, CryptoError};
+pub use crypto::{decrypt, encrypt, is_encrypted, CryptoError};
 pub use model::{
     create_resource, AccessEvidence, AccessOrigin, BlockedRoute, DependencyMap,
     DocumentationCoverage, Evaluation, EvaluationError, MapError, Resource, ResourceError,
