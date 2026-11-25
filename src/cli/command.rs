@@ -21,8 +21,9 @@ pub(crate) const HELP: &[&str] = &[
     "remove resource <id>                            remove a resource no route refers to",
     "remove route <id>                               remove a route",
     "list                                            print the map as commands",
-    "save <path>                                     write the map to a file (plain text, not encrypted)",
-    "open <path>                                     replace the map with the one in a file",
+    "save <path>                                     encrypt the map with a new password and write it to a file",
+    "export <path>                                   write the map to a file as plain text, NOT ENCRYPTED",
+    "open <path>                                     replace the map with the one in a file; asks the password if encrypted",
     "help                                            print this reference",
     "quit                                            stop reading commands",
     "Blank lines and lines starting with # are ignored.",
@@ -73,7 +74,12 @@ pub(crate) enum Command {
         /// Route to remove.
         id: RouteId,
     },
-    /// `save <path>`
+    /// `export <path>`: writes the map as plain, unencrypted JSON.
+    Export {
+        /// File to write.
+        path: PathBuf,
+    },
+    /// `save <path>`: writes the map encrypted with a new password.
     Save {
         /// File to write.
         path: PathBuf,
@@ -194,6 +200,9 @@ pub(crate) fn parse(line: &str) -> Result<Option<Command>, ParseError> {
             end(words)?;
             command
         }
+        "export" => Command::Export {
+            path: rest_of_line(line)?,
+        },
         "save" => Command::Save {
             path: rest_of_line(line)?,
         },

@@ -42,7 +42,7 @@ Usage: opsecmap [--demo | --help | --version]
 Without arguments, opsecmap reads commands from standard input, one per line.
 Type \"help\" for the list of commands, or run: opsecmap < commands.txt
 
-  --demo         save and reopen a fictional example map, then evaluate two
+  --demo         export and reopen a fictional example map, then evaluate two
                  scenarios on it
   -h, --help     print this message
   -V, --version  print the version";
@@ -62,11 +62,12 @@ fn run_line(session: &mut Session, line: &str) -> Result<Option<Vec<String>>, St
     }
 }
 
-/// Builds the demo map, saves it to a temporary file, opens that file in a new
+/// Builds the demo map, exports it to a temporary file, opens that file in a new
 /// session and evaluates each demo scenario on the reopened map.
 ///
-/// The temporary file is removed before the scenarios run, whether or not the
-/// save and open succeeded.
+/// The demo uses `export`, which writes plain text, so it never asks for a
+/// password; the map is fictional. The temporary file is removed before the
+/// scenarios run, whether or not the export and open succeeded.
 fn run_demo() -> ExitCode {
     println!("OpSecMap v{VERSION} — fictional example map");
 
@@ -82,12 +83,12 @@ fn run_demo() -> ExitCode {
     let path = env::temp_dir().join(format!("opsecmap-demo-{}.json", process::id()));
     let mut session = Session::default();
     let round_trip = built
-        .execute(Command::Save { path: path.clone() })
-        .and_then(|saved| {
+        .execute(Command::Export { path: path.clone() })
+        .and_then(|exported| {
             let opened = session.execute(Command::Open { path: path.clone() })?;
-            Ok([saved, opened].concat())
+            Ok([exported, opened].concat())
         });
-    // The file may not exist if saving failed; there is nothing else to clean up.
+    // The file may not exist if exporting failed; there is nothing else to clean up.
     let _ = fs::remove_file(&path);
     match round_trip {
         Ok(lines) => {
@@ -96,7 +97,7 @@ fn run_demo() -> ExitCode {
             }
         }
         Err(e) => {
-            eprintln!("error saving or reopening the demo map: {e}");
+            eprintln!("error exporting or reopening the demo map: {e}");
             return ExitCode::FAILURE;
         }
     }

@@ -5,7 +5,8 @@
 //!
 //! Reading refuses any file larger than [`MAX_FILE_BYTES`]. Writing goes through
 //! a temporary file in the same folder, so an interrupted save never leaves a
-//! half-written map. The file is plain text and is not encrypted.
+//! half-written map. These functions move bytes only: whether they are plain
+//! JSON or an encrypted map is decided by the caller.
 
 use std::fmt;
 use std::fs::{self, File};
@@ -49,14 +50,37 @@ pub(crate) fn read_map_file(path: &Path) -> Result<Vec<u8>, StorageError> {
 /// Returns [`StorageError::Io`] if the temporary file cannot be created,
 /// written, flushed or renamed.
 pub(crate) fn write_map_file(path: &Path, contents: &[u8]) -> Result<(), StorageError> {
-    let mut tmp = path.as_os_str().to_owned();
-    tmp.push(".tmp");
-    let tmp = PathBuf::from(tmp);
+    let tmp = temporary_path(path);
     if let Err(error) = write_then_rename(&tmp, path, contents) {
         let _ = fs::remove_file(&tmp);
         return Err(StorageError::Io(error));
     }
     Ok(())
+}
+
+/// Checks that [`write_map_file`] can create its temporary file next to `path`,
+/// by creating that file and removing it at once.
+///
+/// `save` calls it before asking for a password, so a missing folder or a
+/// denied permission is reported before the user types anything. The check can
+/// still be overtaken by a change on disk before the real write, which then
+/// fails normally.
+///
+/// # Errors
+///
+/// Returns [`StorageError::Io`] if the temporary file cannot be created.
+pub(crate) fn check_writable(path: &Path) -> Result<(), StorageError> {
+    let tmp = temporary_path(path);
+    File::create(&tmp).map_err(StorageError::Io)?;
+    let _ = fs::remove_file(&tmp);
+    Ok(())
+}
+
+/// The temporary file used while writing `path`: `path` with `.tmp` appended.
+fn temporary_path(path: &Path) -> PathBuf {
+    let mut tmp = path.as_os_str().to_owned();
+    tmp.push(".tmp");
+    PathBuf::from(tmp)
 }
 
 /// Creates `tmp`, writes `contents` to it, flushes it to disk and renames it

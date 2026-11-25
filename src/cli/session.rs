@@ -6,16 +6,18 @@
 use std::fmt;
 
 use opsecmap::{
-    from_json, to_json, DependencyMap, DocumentationCoverage, Evaluation, EvaluationError,
-    MapError, MapFileError, Resource, ResourceError, ResourceId, Route, RouteError, Scenario,
-    ScenarioError,
+    decrypt, encrypt, from_json, is_encrypted, to_json, CryptoError, DependencyMap,
+    DocumentationCoverage, Evaluation, EvaluationError, MapError, MapFileError, Resource,
+    ResourceError, ResourceId, Route, RouteError, Scenario, ScenarioError,
 };
+use zeroize::Zeroizing;
 
+use crate::cli::password::{read_new_password, read_password, PasswordError};
 use crate::cli::storage::{into_text, StorageError};
 
 use super::command::{coverage_keyword, Command, HELP};
 use super::render;
-use super::storage::{read_map_file, write_map_file};
+use super::storage::{check_writable, read_map_file, write_map_file};
 
 /// The map built by the commands of one run.
 #[derive(Debug, Default)]
@@ -44,6 +46,10 @@ pub(crate) enum SessionError {
     Storage(StorageError),
     /// The map file was read but is not a valid map.
     File(MapFileError),
+    /// The password could not be read, was empty, or was not repeated exactly.
+    Password(PasswordError),
+    /// The map file could not be encrypted or decrypted.
+    Crypto(CryptoError),
 }
 
 impl fmt::Display for SessionError {
@@ -56,6 +62,8 @@ impl fmt::Display for SessionError {
             Self::Evaluation(e) => write!(f, "{e}"),
             Self::Storage(e) => write!(f, "{e}"),
             Self::File(e) => write!(f, "{e}"),
+            Self::Password(e) => write!(f, "{e}"),
+            Self::Crypto(e) => write!(f, "{e}"),
         }
     }
 }
@@ -99,6 +107,18 @@ impl From<StorageError> for SessionError {
 impl From<MapFileError> for SessionError {
     fn from(e: MapFileError) -> Self {
         Self::File(e)
+    }
+}
+
+impl From<PasswordError> for SessionError {
+    fn from(e: PasswordError) -> Self {
+        Self::Password(e)
+    }
+}
+
+impl From<CryptoError> for SessionError {
+    fn from(e: CryptoError) -> Self {
+        Self::Crypto(e)
     }
 }
 
@@ -146,26 +166,48 @@ impl Session {
                 self.map.remove_route(&id)?;
                 Ok(Vec::new())
             }
-            Command::Save { path } => {
+            Command::Export { path } => {
                 let text = to_json(&self.map)?;
                 write_map_file(&path, text.as_bytes())?;
                 Ok(vec![format!(
-                    "saved {} resources and {} routes to {}",
+                    "exported {} resources and {} routes to {} (plain text, NOT ENCRYPTED)",
+                    self.map.resources().len(),
+                    self.map.routes().len(),
+                    path.display()
+                )])
+            }
+            Command::Save { path } => {
+                let text = Zeroizing::new(to_json(&self.map)?);
+                // A destination that cannot be written fails before the password is typed.
+                check_writable(&path)?;
+                let new_password = read_new_password()?;
+                let ciphertext = encrypt(text.as_bytes(), new_password.as_bytes())?;
+                write_map_file(&path, &ciphertext)?;
+                Ok(vec![format!(
+                    "saved {} resources and {} routes to {} (encrypted)",
                     self.map.resources().len(),
                     self.map.routes().len(),
                     path.display()
                 )])
             }
             Command::Open { path } => {
-                let vec = read_map_file(&path)?;
-                let text = into_text(&vec)?;
-                let map = from_json(text)?;
+                let file = read_map_file(&path)?;
+                let encrypted = is_encrypted(&file);
+                let pt = if encrypted {
+                    let password = read_password("Password: ")?;
+                    decrypt(&file, password.as_bytes())?
+                } else {
+                    Zeroizing::new(file)
+                };
+                let plaintext = into_text(&pt)?;
+                let map = from_json(plaintext)?;
                 self.map = map;
                 Ok(vec![format!(
-                    "opened {} resources and {} routes from {}",
+                    "opened {} resources and {} routes from {} ({})",
                     self.map.resources().len(),
                     self.map.routes().len(),
-                    path.display()
+                    path.display(),
+                    if encrypted { "encrypted" } else { "plain text" }
                 )])
             }
             Command::List => Ok(self.list()),
