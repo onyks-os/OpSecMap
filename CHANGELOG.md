@@ -41,9 +41,32 @@ tagged or published release yet.
 - `save <path>` and `open <path>` CLI commands. `save` writes the map through a
   temporary file renamed into place, so a failed save keeps the previous file;
   `open` refuses files larger than 1 MiB and replaces the map in use only after
-  the whole file has been validated. Map files are plain JSON and are not
-  encrypted. `--demo` saves its map to a temporary file and reopens it before
-  evaluating the scenarios.
+  the whole file has been validated. `--demo` writes its map to a temporary
+  file and reopens it before evaluating the scenarios.
+- The specification of an encrypted map file format (Argon2id and
+  XChaCha20-Poly1305) in `docs/encrypted-format.md`, its decision record (ADR
+  0002) and a threat model. The runtime dependencies `argon2`,
+  `chacha20poly1305`, `getrandom`, `rpassword` and `zeroize` are added for it.
+- Encrypted map files. The library functions `encrypt`, `decrypt` and
+  `is_encrypted` implement the format with a `CryptoError` for each failure.
+  `save` now asks for a new password twice and writes an encrypted file; it
+  checks that the destination can be written before asking. `open` recognizes
+  an encrypted file, asks for its password after the size and header checks,
+  and leaves the map unchanged on a wrong password or a modified file. The
+  password is read from the terminal with echo off, or from `OPSECMAP_PASSWORD`
+  for tests. `export <path>` writes the plain JSON that `save` used to write,
+  and `--demo` uses it.
+- Checks of the encryption: a test vector written by libsodium, an
+  implementation independent of the crates OpSecMap uses, which the key
+  derivation, the encryption and the decryption must match byte for byte;
+  property tests of `decrypt` and `from_json` on arbitrary input; an exhaustive
+  test that changing any byte of an encrypted file is refused; scripts in
+  `tests/manual/` that check password entry in a real terminal and decrypt a
+  saved file with libsodium; and a self-review checklist in
+  `docs/crypto-review.md`.
+- ADR 0003, which plans a Tauri preview desktop app for testers and then an
+  egui desktop app, and a how-to guide on hardening the computer that opens
+  maps: disk encryption, swap, crash dumps and hardened_malloc.
 - A source-only README with badges, example usage, and an AI-use disclosure.
 - Unit tests for resource, map and route invariants.
 - A project logo in the README.

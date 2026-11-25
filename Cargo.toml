@@ -15,11 +15,29 @@ categories = ["command-line-utilities"]
 exclude = ["docs/", ".github/", "tests/fixtures/"]
 
 [dependencies]
+# Encrypted map files: Argon2id turns the password into a key, XChaCha20-Poly1305
+# encrypts and authenticates the map. Default features are off: the salt and
+# nonce come from `getrandom` directly, and password hashing strings are unused.
+argon2 = { version = "0.6", default-features = false, features = ["alloc"] }
+chacha20poly1305 = { version = "0.11", default-features = false, features = ["alloc"] }
+getrandom = "0.4"
+# Reads the map password from the terminal without echoing it.
+rpassword = "7"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Clears passwords, keys and decrypted maps from memory when they are dropped.
+zeroize = "1"
 
 [dev-dependencies]
 proptest = "1"
+
+# Argon2 is slow on purpose; unoptimized, each key derivation in a debug build
+# or test takes seconds instead of a fraction of one.
+[profile.dev.package.argon2]
+opt-level = 3
+
+[profile.dev.package.blake2]
+opt-level = 3
 
 [profile.release]
 # Fail loudly rather than wrap silently: an integer overflow in release mode is

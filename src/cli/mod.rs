@@ -3,11 +3,13 @@
 //!
 //! Command-line interface: parsing, execution and text rendering.
 //!
-//! Every function here is pure except the input loop in `main.rs`: parsing
-//! turns a line into a [`command::Command`], the [`session::Session`] applies it
-//! to a map, and [`render`] turns evaluation results into lines of text.
+//! Parsing turns a line into a [`command::Command`], the [`session::Session`]
+//! applies it to a map, and [`render`] turns evaluation results into lines of
+//! text. Only [`storage`] touches files and only [`password`] reads the
+//! terminal; the input loop is in `main.rs`.
 
 pub(crate) mod command;
+pub(crate) mod password;
 pub(crate) mod render;
 pub(crate) mod session;
 pub(crate) mod storage;

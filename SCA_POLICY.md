@@ -1,8 +1,11 @@
 # Dependency review
 
 Direct dependencies and their purpose are listed in [DEPENDENCIES.md](DEPENDENCIES.md).
-At runtime the library and the CLI depend only on `serde` and `serde_json`, used
-for the map file format.
+At runtime the library and the CLI depend on `serde` and `serde_json` for the
+map file format, and on `argon2`, `chacha20poly1305`, `getrandom`, `rpassword`
+and `zeroize` for encrypted map files. The cryptographic crates all come from
+the RustCrypto project; the choice is recorded in
+[ADR 0002](docs/decisions/0002-encrypt-map-files-with-argon2id-and-xchacha20-poly1305.md).
 
 Automated checks:
 
@@ -18,9 +21,9 @@ Automated checks:
 
 Before adding or accepting a dependency, review its maintenance, license,
 transitive dependencies and relevance to this project, then run the build and
-tests. Planned features will add dependencies for serialization and for
-encryption: cryptographic code must come from maintained, widely reviewed crates,
-never from new or little-used ones. A security alert is investigated in the
+tests. Cryptographic code must come from maintained, widely reviewed crates,
+never from new or little-used ones, and OpSecMap combines their primitives
+without implementing any of its own. A security alert is investigated in the
 context of how OpSecMap uses that dependency; accepted risks are recorded rather
 than silently ignored.
 

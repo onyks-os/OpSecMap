@@ -12,9 +12,11 @@
 /// The crate version, taken from `Cargo.toml` at compile time.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
+mod crypto;
 mod model;
 mod persistence;
 
+pub use crypto::{decrypt, encrypt, is_encrypted, CryptoError};
 pub use model::{
     create_resource, AccessEvidence, AccessOrigin, BlockedRoute, DependencyMap,
     DocumentationCoverage, Evaluation, EvaluationError, MapError, Resource, ResourceError,

@@ -20,9 +20,9 @@ release-date commitment; proposed work beyond these milestones is tracked in
   evaluates scenarios and lists the map as reusable commands.
 - Saving a map to a versioned JSON file and opening it again (`save`, `open`),
   with every rule of the map applied while reading and a size limit.
+- Password-encrypted map files (Argon2id and XChaCha20-Poly1305): `save`
+  encrypts, `export` writes plain JSON, `open` reads both.
 - Automated checks for the implemented domain invariants.
-
-Saved map files are plain text: there is no encryption yet.
 
 ## Dependency graph
 
@@ -35,8 +35,11 @@ OpSec dependency map.
 
 ## Later milestones
 
-- Encrypted map files.
-- Interactive visualization over the same domain model and evaluator.
+- Interactive visualization over the same domain model and evaluator
+  ([ADR 0003](docs/decisions/0003-a-tauri-preview-first-then-an-egui-desktop-app.md)):
+  a graph layout computed by the library, then a preview desktop app built with
+  Tauri for testers using fictional maps, then a desktop app built with egui
+  that clears the password and the map from memory.
 - Packaging and release workflows for supported platforms.
 
 ## Explicitly out of scope

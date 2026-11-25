@@ -1,7 +1,7 @@
 # Tutorial: Quickstart
 
 This tutorial runs the demo built into the CLI, then describes a small map with
-commands. Use fictional data: the CLI does not save or encrypt anything.
+commands. Use fictional data throughout.
 
 **You will need:** Rust 1.88 or newer with Cargo.
 
@@ -97,9 +97,10 @@ To repeat the same session later, put the commands in a file and run
 `cargo run < commands.txt`. The `list` command prints the current map as
 commands, ready to save.
 
-To keep the map itself, type `save my-map.json` before `quit`; in a later session,
-`open my-map.json` brings it back. The file is plain JSON and is not encrypted,
-so keep using fictional data.
+To keep the map itself, type `save my-map.opsecmap` before `quit` and choose a
+password; it is asked twice and not shown. In a later session,
+`open my-map.opsecmap` asks for the password and brings the map back. There is
+no password recovery: a lost password is a lost map.
 
 ---
 
