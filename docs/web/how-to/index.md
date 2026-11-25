@@ -19,3 +19,8 @@ separately.
 
 `list` prints the map written as commands instead; a file of those commands, or
 one written by `export`, is plain text and readable by anyone with a copy.
+
+## Protect open maps
+
+An open map is held in memory, which the system can write to disk. See
+[Harden the computer that opens your maps](harden-your-computer.md).

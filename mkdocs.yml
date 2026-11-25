@@ -80,6 +80,7 @@ nav:
       - Quickstart: tutorials/quickstart.md
   - How-To Guides:
       - Overview: how-to/index.md
+      - Harden your computer: how-to/harden-your-computer.md
   - Explanation:
       - Architecture: explanation/architecture.md
   - Reference:

@@ -81,7 +81,9 @@ it exists for tests and fictional maps (see [Limits](#limits)).
   buffer it owns, so those copies stay until the memory is reused. The
   operating system also saves registers when it switches between programs, and
   the terminal driver briefly holds the typed password; neither is under the
-  program's control.
+  program's control. The
+  [hardening guide](web/how-to/harden-your-computer.md) reduces where these
+  copies can end up.
 - **`OPSECMAP_PASSWORD` is visible** to other processes of the same user, and
   can end up in shell history or scripts. Do not use it for a real password.
 - **Weak passwords stay weak.** Argon2id makes each guess cost 64 MiB and a

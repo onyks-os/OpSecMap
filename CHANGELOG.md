@@ -64,6 +64,9 @@ tagged or published release yet.
   `tests/manual/` that check password entry in a real terminal and decrypt a
   saved file with libsodium; and a self-review checklist in
   `docs/crypto-review.md`.
+- ADR 0003, which plans a Tauri preview desktop app for testers and then an
+  egui desktop app, and a how-to guide on hardening the computer that opens
+  maps: disk encryption, swap, crash dumps and hardened_malloc.
 - A source-only README with badges, example usage, and an AI-use disclosure.
 - Unit tests for resource, map and route invariants.
 - A project logo in the README.

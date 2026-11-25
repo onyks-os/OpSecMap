@@ -35,7 +35,11 @@ OpSec dependency map.
 
 ## Later milestones
 
-- Interactive visualization over the same domain model and evaluator.
+- Interactive visualization over the same domain model and evaluator
+  ([ADR 0003](docs/decisions/0003-a-tauri-preview-first-then-an-egui-desktop-app.md)):
+  a graph layout computed by the library, then a preview desktop app built with
+  Tauri for testers using fictional maps, then a desktop app built with egui
+  that clears the password and the map from memory.
 - Packaging and release workflows for supported platforms.
 
 ## Explicitly out of scope

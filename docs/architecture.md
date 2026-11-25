@@ -311,12 +311,12 @@ accuracy of user-supplied recovery procedures.
 
 | Area | Current position |
 | :--- | :--- |
-| Graphical interface | Later presentation layer; must preserve route grouping, explanations and textual accessibility |
-| Browser deployment | Rust/WASM with a web frontend is an option; no framework or binding library is mandated |
+| Graphical interface | Decided in [ADR 0003](decisions/0003-a-tauri-preview-first-then-an-egui-desktop-app.md), not yet built: a Tauri preview for testers, then an egui app; both must preserve route grouping, explanations and textual accessibility |
+| Browser deployment | Not planned: a browser profile is shared with every website (ADR 0003) |
 | Data restoration | Separate future analysis of backup contents, freshness and restore requirements |
 | Compromise | Separate future analysis of attacker capabilities and confidentiality consequences |
 | Common-cause failures | Shared prerequisites and multi-resource exclusions initially; explicit failure groups deferred |
-| Persistence | Plaintext version 1 specified; migrations and cryptographic envelope pending specification |
+| Persistence | Plaintext and encrypted version 1 implemented; migrations pending |
 | Resource representation | Stable identifier implemented; descriptive role vocabulary remains open |
 
 A graphical interface must provide keyboard operation and a textual alternative,
